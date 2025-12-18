@@ -597,6 +597,11 @@ def deploy_fix():
                     if not Product.query.filter_by(link=link).first():
                         new_prod = Product(link=link, name=name, current_price=price, old_price=price, is_public=True)
                         db.session.add(new_prod)
+                        
+                        # 🚨 THIS IS THE FIX: Force DB to generate the ID now
+                        db.session.flush() 
+                        
+                        # Now new_prod.id exists!
                         db.session.add(PriceHistory(product_id=new_prod.id, price=price))
                         count += 1
             except: continue
@@ -605,6 +610,7 @@ def deploy_fix():
         return f"✅ SUCCESS! Database Created & Seeded with {count} items. <a href='/dashboard'>Go to Dashboard</a>"
         
     except Exception as e:
+        db.session.rollback() # Reset if error happens
         return f"❌ ERROR: {str(e)}"
 
 # --- 🚀 MERGED RUNNER (WEBSITE + BOT) ---
@@ -634,3 +640,4 @@ if __name__ == '__main__':
     # use_reloader=False prevents the bot from starting twice
 
     app.run(debug=True, port=5001, use_reloader=False)
+
