@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP | Jumia Price Tracker</title>
+    <style>
+        body {
+            background-color: #f4f6f8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .verify-card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h2 { margin-bottom: 10px; color: #333; }
+        p { color: #666; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+
+        input {
+            width: 70%;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 24px;
+            letter-spacing: 8px;
+            text-align: center;
+            outline: none;
+            font-weight: bold;
+        }
+        input:focus { border-color: #f68b1e; }
+
+        button {
+            width: 90%;
+            padding: 12px;
+            background-color: #f68b1e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #e07a10; }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .alert { color: red; font-size: 14px; margin-bottom: 10px; }
+
+        /* TIMER BOX */
+        .timer-box {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: block;
+        }
+        
+        /* HIDDEN EXPIRED MSG */
+        .expired-msg {
+            color: red;
+            font-weight: bold;
+            display: none;
+            margin-top: 10px;
+            border: 1px solid red;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        /* BIG RESEND BUTTON (For Expired State) */
+        .resend-btn-big {
+            display: none;
+            margin-top: 20px;
+            text-decoration: none;
+            color: white;
+            background-color: #007bff;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 5px;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* SMALL RESEND LINK (Always Visible) */
+        .resend-link-small {
+            display: block;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .resend-link-small a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .resend-link-small a:hover { text-decoration: underline; }
+
+    </style>
+</head>
+<body>
+
+    <div class="verify-card">
+        <h2>📩 Verification</h2>
+        <p>Enter the code sent to your email.</p>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+
+        <div id="timer-display" class="timer-box">⏳ Expires in: 20:00</div>
+        
+        <div id="expired-msg" class="expired-msg">❌ CODE EXPIRED</div>
+
+        <form method="POST">
+            <input type="text" id="otp-input" name="otp" placeholder="123456" maxlength="6" required>
+            <br>
+            <button type="submit" id="verify-btn">Verify Account</button>
+        </form>
+
+        <div class="resend-link-small" id="manual-resend">
+            Didn't receive the code? <a href="/resend_otp">Resend Now</a>
+        </div>
+
+        <a href="/resend_otp" id="resend-btn-big" class="resend-btn-big">🔄 Tap Here to Resend OTP</a>
+    </div>
+
+    <script>
+        function startTimer(duration, display) {
+            var timer = duration, minutes, seconds;
+            var countdown = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = "⏳ Expires in: " + minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(countdown);
+                    
+                    // Hide Normal Timer & Manual Link
+                    document.getElementById("timer-display").style.display = "none";
+                    document.getElementById("manual-resend").style.display = "none"; // Hide small link
+                    
+                    // Show Expired UI
+                    document.getElementById("expired-msg").style.display = "block";
+                    document.getElementById("resend-btn-big").style.display = "block"; // Show Big Button
+                    
+                    // Disable Form
+                    document.getElementById("otp-input").disabled = true;
+                    document.getElementById("verify-btn").disabled = true;
+                    document.getElementById("verify-btn").innerText = "⛔ Expired";
+                    document.getElementById("verify-btn").style.backgroundColor = "#ccc";
+                }
+            }, 1000);
+        }
+
+        window.onload = function () {
+            // Set to 20 Minutes (60 * 20)
+            var timeLimit = 60 * 20; 
+            var display = document.querySelector('#timer-display');
+            startTimer(timeLimit, display);
+        };
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Marketplace | JumiaTracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 40px; margin: 0; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 20px;}
+        h1 { margin: 0; color: #333; }
+        
+        .search-box { position: relative; max-width: 400px; width: 100%; }
+        .search-box input { width: 100%; padding: 10px 15px; padding-left: 40px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 14px; }
+        .search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #888; }
+
+        .back-link { text-decoration: none; color: #666; font-weight: bold; }
+        .back-link:hover { color: #f68b1e; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 25px; }
+
+        .card { 
+            background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+            overflow: hidden; transition: transform 0.2s; display: flex; flex-direction: column;
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+
+        .card-img { width: 100%; height: 200px; object-fit: contain; padding: 15px; box-sizing: border-box; border-bottom: 1px solid #f0f0f0; }
+        .card-body { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
+        .card-title { font-size: 16px; font-weight: 600; color: #333; margin-bottom: 10px; height: 40px; overflow: hidden; text-overflow: ellipsis; }
+        
+        .price { font-size: 20px; font-weight: 800; color: #282828; margin-bottom: 5px; } /* Reduced margin */
+        
+        /* 🚨 STOCK STATUS CSS (Added This) 🚨 */
+        .stock-status {
+            font-size: 13px; font-weight: bold; margin-bottom: 15px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        
+        .track-btn { width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: auto; transition: 0.2s; }
+        .track-btn:hover { background: #218838; }
+        
+        .jumia-link { display: block; text-align: center; margin-top: 10px; color: #007bff; text-decoration: none; font-size: 13px; }
+        
+        .alert { padding: 15px; margin-bottom: 20px; border-radius: 8px; color: white; text-align: center; font-weight: bold; }
+        .success { background-color: #28a745; }
+        .warning { background-color: #ffc107; color: black; }
+        
+        .hidden { display: none; }
+    </style>
+
+    <script>
+        function filterItems() {
+            var input, filter, cards, title, i, txtValue;
+            input = document.getElementById('searchInput');
+            filter = input.value.toUpperCase();
+            cards = document.getElementsByClassName('card');
+
+            for (i = 0; i < cards.length; i++) {
+                title = cards[i].getElementsByClassName("card-title")[0];
+                if (title) {
+                    txtValue = title.textContent || title.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        cards[i].classList.remove("hidden");
+                    } else {
+                        cards[i].classList.add("hidden");
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="header">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <h1>🛒 Marketplace</h1>
+            <a href="/" class="back-link">← Back Home</a>
+        </div>
+        
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" onkeyup="filterItems()" placeholder="Search products...">
+        </div>
+    </div>
+
+    <div class="grid">
+        {% if all_products %}
+            {% for product in all_products %}
+                <div class="card">
+                    <img src="{{ product.image_url or 'https://via.placeholder.com/200?text=No+Image' }}" class="card-img" alt="Product Image">
+                    <div class="card-body">
+                        <div class="card-title">{{ product.name }}</div>
+                        <div class="price">₦{{ "{:,.0f}".format(product.current_price) }}</div>
+                        
+                        {% if product.stock_left %}
+                            {% if "left" in product.stock_left or "Out" in product.stock_left %}
+                                <div class="stock-status" style="color: #dc3545;">
+                                    <i class="fas fa-fire"></i> {{ product.stock_left }}
+                                </div>
+                            {% else %}
+                                <div class="stock-status" style="color: #28a745;">
+                                    <i class="fas fa-check-circle"></i> {{ product.stock_left }}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <div class="stock-status" style="color: #999;">
+                                <i class="fas fa-spinner"></i> Checking Stock...
+                            </div>
+                        {% endif %}
+                        
+                        <form action="{{ url_for('track_item', product_id=product.id) }}" method="POST">
+                            <button type="submit" class="track-btn"><i class="fas fa-plus"></i> Track This</button>
+                        </form>
+
+                        <a href="{{ product.link }}" target="_blank" class="jumia-link">View on Jumia</a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div style="text-align: center; grid-column: 1/-1; color: #666;">
+                <h2>Bot is still hunting... 🕵️‍♂️</h2>
+            </div>
+        {% endif %}
+    </div>
+
+<div style="text-align: center; margin-top: 60px; padding: 30px 20px; background-color: white; border-top: 1px solid #eee; color: #666;">
+    <p style="margin-bottom: 10px; font-size: 15px;">
+        Designed & Developed by <strong>David Olufemi</strong> 👨‍💻
+    </p>
+    <p style="margin-bottom: 20px; font-size: 13px; color: #888;">
+        Python Automation Developer | Machine Learning Engineer
+    </p>
+    
+    <a href="https://www.linkedin.com/in/david-olufemi-243b25380" target="_blank" 
+       style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; background-color: #0077b5; color: white; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; transition: 0.3s;">
+        <i class="fab fa-linkedin"></i> Connect on LinkedIn
+    </a>
+</div>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track New Item | JumiaTracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f6f8; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
+        h2 { margin-top: 0; color: #333; }
+        p { color: #666; margin-bottom: 30px; }
+        
+        .input-group { position: relative; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; padding-left: 45px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; outline: none; transition: 0.3s; }
+        input:focus { border-color: #f68b1e; }
+        .input-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #888; }
+        
+        .btn-analyze { width: 100%; padding: 15px; background: #282828; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-analyze:hover { background: #000; }
+        
+        /* PREVIEW BOX CSS */
+        .preview-box { margin-top: 30px; border: 2px dashed #f68b1e; padding: 20px; border-radius: 10px; background: #fff8f0; text-align: left; display: flex; align-items: center; gap: 20px; animation: slideUp 0.5s ease; }
+        .preview-img { width: 100px; height: 100px; object-fit: contain; background: white; padding: 5px; border-radius: 5px; }
+        .preview-details h3 { font-size: 16px; margin: 0 0 5px 0; color: #333; }
+        .preview-price { font-size: 20px; font-weight: 800; color: #28a745; margin-bottom: 5px; }
+        
+        /* 🚨 STOCK STATUS CSS 🚨 */
+        .stock-status { font-size: 13px; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+        
+        .btn-confirm { background: #f68b1e; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-confirm:hover { background: #e07a10; }
+        .back-link { display: block; margin-top: 20px; color: #666; text-decoration: none; }
+        .alert { padding: 10px; margin-bottom: 15px; border-radius: 5px; color: white; }
+        .danger { background: #dc3545; }
+        .success { background: #28a745; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🔗 Track a Product</h2>
+        <p>Go to Jumia, copy a product link, and paste it here.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="input-group">
+                <i class="fas fa-link input-icon"></i>
+                <input type="text" name="link" placeholder="Paste Jumia link here (e.g. https://www.jumia.com.ng/...)" required>
+            </div>
+            <button type="submit" class="btn-analyze">🔍 Analyze Link</button>
+        </form>
+
+        {% if preview %}
+        <div class="preview-box">
+            <img src="{{ preview.image }}" class="preview-img" alt="Product">
+            <div class="preview-details">
+                <h3>{{ preview.name }}</h3>
+                <div class="preview-price">₦{{ "{:,.0f}".format(preview.price) }}</div>
+                
+                {% if preview.stock %}
+                    {% if "left" in preview.stock or "Out" in preview.stock or "Low" in preview.stock %}
+                        <div class="stock-status" style="color: #dc3545;">
+                            <i class="fas fa-fire"></i> {{ preview.stock }}
+                        </div>
+                    {% else %}
+                        <div class="stock-status" style="color: #28a745;">
+                            <i class="fas fa-check-circle"></i> {{ preview.stock }}
+                        </div>
+                    {% endif %}
+                {% endif %}
+                
+                <form method="POST">
+                    <input type="hidden" name="confirm_track" value="true">
+                    <input type="hidden" name="confirm_link" value="{{ preview.link }}">
+                    <input type="hidden" name="confirm_name" value="{{ preview.name }}">
+                    <input type="hidden" name="confirm_price" value="{{ preview.price }}">
+                    <input type="hidden" name="confirm_image" value="{{ preview.image }}">
+                    <input type="hidden" name="confirm_stock" value="{{ preview.stock }}">
+                    
+                    <button type="submit" class="btn-confirm">✅ Yes, Track This</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+    </div>
+</body>
+</html>

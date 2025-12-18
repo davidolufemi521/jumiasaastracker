@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Watchlist | JumiaTracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; padding: 40px; margin: 0; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 20px; }
+        h1 { margin: 0; color: #333; }
+        .search-box { position: relative; max-width: 400px; width: 100%; }
+        .search-box input { width: 100%; padding: 10px 15px; padding-left: 40px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        .search-box i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #888; }
+        .back-link { text-decoration: none; color: #666; font-weight: bold; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); position: relative; overflow: hidden; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .card-img { width: 100%; height: 200px; object-fit: contain; padding: 15px; border-bottom: 1px solid #f0f0f0; }
+        .card-body { padding: 15px; }
+        .card-title { font-size: 16px; font-weight: 600; color: #333; height: 40px; overflow: hidden; margin-bottom: 5px; }
+        .price { font-size: 22px; font-weight: 800; color: #333; }
+        
+        .btn-history { 
+            display: block; width: 100%; text-align: center; margin-top: 10px; 
+            background: #007bff; color: white; padding: 8px; border-radius: 5px; 
+            text-decoration: none; font-size: 13px; font-weight: bold; cursor: pointer;
+        }
+        .btn-history:hover { background: #0056b3; }
+
+        .jumia-link { display: block; margin-top: 10px; color: #666; text-decoration: none; font-size: 12px; text-align: center; }
+        .delete-btn { position: absolute; top: 10px; right: 10px; background: white; color: #dc3545; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); cursor: pointer; z-index: 2; text-decoration: none; }
+
+        /* MODAL STYLE */
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background-color: white; margin: 10% auto; padding: 20px; border-radius: 10px; width: 90%; max-width: 600px; position: relative; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    </style>
+    
+    <script>
+        function showHistory(productId, productName) {
+            document.getElementById('chartModal').style.display = 'block';
+            document.getElementById('modalTitle').innerText = 'Price History: ' + productName;
+            
+            // Fetch Data
+            fetch('/get_history/' + productId)
+                .then(response => response.json())
+                .then(data => {
+                    const ctx = document.getElementById('priceChart').getContext('2d');
+                    
+                    if(window.myChart instanceof Chart) { window.myChart.destroy(); } // Destroy old chart
+                    
+                    window.myChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.dates,
+                            datasets: [{
+                                label: 'Price (₦)',
+                                data: data.prices,
+                                borderColor: '#f68b1e',
+                                backgroundColor: 'rgba(246, 139, 30, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.3
+                            }]
+                        },
+                        options: { scales: { y: { beginAtZero: false } } }
+                    });
+                });
+        }
+
+        function closeModal() { document.getElementById('chartModal').style.display = 'none'; }
+        window.onclick = function(event) { if (event.target == document.getElementById('chartModal')) { closeModal(); } }
+    </script>
+</head>
+<body>
+
+    <div class="header">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <h1>🔭 My Watchlist</h1>
+            <a href="/" class="back-link">← Back Home</a>
+        </div>
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search your list...">
+        </div>
+    </div>
+
+    <div class="grid">
+        {% if my_tracking %}
+            {% for item in my_tracking %}
+                <div class="card">
+                    <a href="/delete_tracking/{{ item.id }}" class="delete-btn" onclick="return confirm('Stop tracking?')"><i class="fas fa-trash"></i></a>
+                    <img src="{{ item.product.image_url }}" class="card-img">
+                    <div class="card-body">
+                        <div class="card-title">{{ item.product.name }}</div>
+                        <div class="price">₦{{ "{:,.0f}".format(item.product.current_price) }}</div>
+                        
+                        {% if item.product.stock_left %}
+                            <div style="font-size: 13px; font-weight: bold; margin-top: 5px; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; color: {{ '#dc3545' if 'left' in item.product.stock_left or 'Out' in item.product.stock_left else '#28a745' }};">
+                                <i class="fas fa-{{ 'fire' if 'left' in item.product.stock_left or 'Out' in item.product.stock_left else 'check-circle' }}"></i> 
+                                {{ item.product.stock_left }}
+                            </div>
+                        {% endif %}
+                        
+                        <div onclick="showHistory({{ item.product.id }}, '{{ item.product.name[:20] }}')" class="btn-history">
+                            <i class="fas fa-chart-line"></i> View Price History
+                        </div>
+                        
+                        <a href="{{ item.product.link }}" target="_blank" class="jumia-link">View on Jumia <i class="fas fa-external-link-alt"></i></a>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="grid-column: 1/-1; text-align: center; color:#888;">No items in watchlist.</p>
+        {% endif %}
+    </div>
+
+    <div id="chartModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3 id="modalTitle">Price History</h3>
+            <canvas id="priceChart"></canvas>
+        </div>
+    </div>
+
+</body>
+</html>

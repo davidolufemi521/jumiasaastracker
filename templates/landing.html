@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JumiaTracker - Smart Shopping Redefined</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* --- GLOBAL & TYPOGRAPHY --- */
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; color: #333; overflow-x: hidden; background: #fff; }
+        h1, h2, h3 { margin: 0; }
+        
+        /* --- HERO SECTION --- */
+        .hero {
+            position: relative; height: 100vh;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: white; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden;
+        }
+
+        #particle-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .hero-content { z-index: 2; position: relative; padding: 20px; max-width: 800px; }
+        
+        /* Jumia Badge */
+        .jumia-badge {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            padding: 8px 20px; border-radius: 30px; font-size: 14px; color: #e0e0e0;
+            margin-bottom: 25px; display: inline-flex; align-items: center; gap: 8px;
+            backdrop-filter: blur(5px);
+        }
+
+        .hero h1 { font-size: 60px; font-weight: 800; letter-spacing: -2px; margin-bottom: 20px; text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .hero p { font-size: 22px; color: rgba(255,255,255,0.8); margin-bottom: 40px; line-height: 1.6; }
+        
+        .highlight { color: #f68b1e; position: relative; display: inline-block; }
+        
+        .btn-group { display: flex; gap: 20px; justify-content: center; }
+        .btn { padding: 18px 45px; border-radius: 50px; font-weight: bold; text-decoration: none; transition: 0.3s; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-primary { background: #f68b1e; color: white; box-shadow: 0 10px 30px rgba(246, 139, 30, 0.4); }
+        .btn-primary:hover { background: #e07a10; transform: translateY(-5px); }
+        .btn-glass { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; backdrop-filter: blur(10px); }
+        .btn-glass:hover { background: white; color: black; transform: translateY(-5px); }
+
+        /* --- TICKER BAR --- */
+        .ticker-wrap {
+            position: absolute; bottom: 0; left: 0; width: 100%; overflow: hidden; height: 50px;
+            background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 10;
+            display: flex; align-items: center; border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .ticker { display: flex; animation: ticker 30s infinite linear; white-space: nowrap; }
+        .ticker-item {
+            color: white; padding: 0 40px; font-size: 16px; display: flex; align-items: center; gap: 10px;
+        }
+        .ticker-price { color: #28a745; font-weight: bold; }
+        @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-50%, 0, 0); } }
+
+        /* --- VIDEO SECTION --- */
+        .video-section { padding: 100px 20px; background: #f9f9f9; text-align: center; }
+        .laptop-frame {
+            max-width: 900px; margin: 50px auto; background: #111; padding: 20px 20px 40px 20px; 
+            border-radius: 20px; box-shadow: 0 50px 100px rgba(0,0,0,0.3); position: relative;
+        }
+        .laptop-frame::before { content: ''; width: 8px; height: 8px; background: #444; border-radius: 50%; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); }
+        .video-wrapper { width: 100%; height: 0; padding-bottom: 56.25%; position: relative; background: #000; }
+        .video-wrapper video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+
+        /* --- FEATURES SECTION --- */
+        .features-grid { padding: 100px 20px; max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; }
+        .feature-card {
+            padding: 40px; border-radius: 20px; background: white; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.05); transition: 0.4s; border-top: 5px solid transparent;
+            display: flex; flex-direction: column; height: 100%;
+        }
+        .feature-card:hover { transform: translateY(-15px); box-shadow: 0 20px 60px rgba(0,0,0,0.1); }
+        .feature-card i { font-size: 50px; margin-bottom: 20px; background: -webkit-linear-gradient(#f68b1e, #ff4e50); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .feature-card h3 { font-size: 24px; margin-bottom: 15px; }
+        .feature-card p { flex-grow: 1; color: #666; line-height: 1.6; font-size: 16px; }
+        
+        .btn-card {
+            display: inline-block; margin-top: 25px; padding: 12px 30px; 
+            border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 14px;
+            background: #f4f6f8; color: #333; transition: 0.2s; align-self: flex-start;
+        }
+        .btn-card:hover { background: #333; color: white; }
+
+        /* --- FEEDBACK SECTION --- */
+        .feedback-section { background: #1a1a1a; color: white; padding: 80px 20px; text-align: center; }
+        .feedback-form { max-width: 500px; margin: 40px auto; text-align: left; }
+        .form-control { width: 100%; padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 10px; margin-bottom: 20px; outline: none; box-sizing: border-box; }
+        .form-control:focus { border-color: #f68b1e; }
+        textarea.form-control { height: 120px; resize: none; }
+        .btn-submit { width: 100%; padding: 15px; background: #f68b1e; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-submit:hover { background: #e07a10; }
+
+        footer { background: black; color: #555; padding: 30px; text-align: center; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 80%; max-width: 600px;">
+                {% for category, message in messages %}
+                    <div style="padding: 15px; margin-bottom: 10px; border-radius: 8px; text-align: center; color: white; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+                        background: {{ '#28a745' if category == 'success' else '#dc3545' }};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="hero">
+        <canvas id="particle-canvas"></canvas>
+        <div class="hero-content">
+            
+            <div class="jumia-badge">
+                <i class="fas fa-shopping-bag" style="color:#f68b1e;"></i> 
+                <span>Optimized for <b>Jumia Nigeria</b></span>
+            </div>
+
+            <h1>Stop Overpaying on <span class="highlight">Jumia.</span></h1>
+            <p>Our intelligent bot tracks prices 24/7. When they drop, we email you instantly. <br>Join thousands of smart shoppers today.</p>
+            
+            <div class="btn-group">
+                <a href="/register" class="btn btn-primary">Start Tracking Free</a>
+                <a href="/login" class="btn btn-glass">Login</a>
+            </div>
+        </div>
+
+        <div class="ticker-wrap">
+            <div class="ticker">
+                {% if ticker_deals %}
+                    {% for item in ticker_deals %}
+                    <div class="ticker-item">
+                        <i class="fas fa-fire" style="color: #f68b1e;"></i> 
+                        {{ item.name[:25] }}... 
+                        <span class="ticker-price">Dropped to ₦{{ "{:,.0f}".format(item.current_price) }}</span>
+                    </div>
+                    {% endfor %}
+                    {% for item in ticker_deals %}
+                    <div class="ticker-item">
+                        <i class="fas fa-fire" style="color: #f68b1e;"></i> 
+                        {{ item.name[:25] }}... 
+                        <span class="ticker-price">Dropped to ₦{{ "{:,.0f}".format(item.current_price) }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="ticker-item"><i class="fas fa-bolt" style="color:yellow;"></i> Tracking 50+ Jumia Products...</div>
+                    <div class="ticker-item"><i class="fas fa-check-circle" style="color:#28a745;"></i> System Online...</div>
+                    <div class="ticker-item"><i class="fas fa-user-plus" style="color:#007bff;"></i> Join Users saving money today...</div>
+                    <div class="ticker-item"><i class="fas fa-bolt" style="color:yellow;"></i> Tracking 50+ Jumia Products...</div>
+                    <div class="ticker-item"><i class="fas fa-check-circle" style="color:#28a745;"></i> System Online...</div>
+                    <div class="ticker-item"><i class="fas fa-user-plus" style="color:#007bff;"></i> Join Users saving money today...</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="video-section">
+        <h2 style="font-size: 40px; margin-bottom: 10px;">Watch It In Action</h2>
+        <p style="color: #666; font-size: 18px;">See how easy it is to track any product in seconds.</p>
+        
+        <div class="laptop-frame">
+            <div class="video-wrapper">
+                <video controls autoplay muted loop>
+                    <source src="{{ url_for('static', filename='demo_video.mp4') }}" type="video/mp4">
+                    <div style="display:flex; height:100%; align-items:center; justify-content:center; color:white; flex-direction:column;">
+                        <i class="fas fa-play-circle" style="font-size: 60px; margin-bottom:20px;"></i>
+                        <h3>Video Loading...</h3>
+                        <p>Place 'demo_video.mp4' in your static folder.</p>
+                    </div>
+                </video>
+            </div>
+        </div>
+    </div>
+
+    <div class="features-grid">
+        <div class="feature-card" style="border-top-color: #f68b1e;">
+            <i class="fas fa-search-dollar"></i>
+            <h3>Live Marketplace</h3>
+            <p>Don't know what to buy? Browse our live catalog of products our bot is already tracking. See historical price data and spot deals instantly.</p>
+            <a href="/login" class="btn-card">Browse Now →</a>
+        </div>
+        <div class="feature-card" style="border-top-color: #007bff;">
+            <i class="fas fa-link"></i>
+            <h3>Track Any Link</h3>
+            <p>Found a specific shoe or phone? Just copy the Jumia link, paste it into our dashboard, and we'll monitor that specific item for you.</p>
+            <a href="/login" class="btn-card">Start Tracking →</a>
+        </div>
+        <div class="feature-card" style="border-top-color: #28a745;">
+            <i class="fas fa-bell"></i>
+            <h3>Instant Alerts</h3>
+            <p>We don't just track; we notify. You'll get an email the exact moment a price drops, so you can buy before it goes out of stock.</p>
+            <a href="/register" class="btn-card">Get Alerts →</a>
+        </div>
+    </div>
+
+    <div class="feedback-section">
+        <h2>We Value Your Feedback</h2>
+        <p style="color: #aaa;">Help us improve the app. What features do you want next?</p>
+        
+        <div class="feedback-form">
+            <form action="/feedback" method="POST">
+                <input type="email" name="email" class="form-control" placeholder="Your Email (So we can reply!)">
+                <input type="text" name="name" class="form-control" placeholder="Your Name (Optional)">
+                <textarea name="message" class="form-control" placeholder="Tell us what you think..." required></textarea>
+                <button type="submit" class="btn-submit">Send Feedback</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 JumiaTracker. Built with ❤️ for Nigerian Shoppers.</p>
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        let particlesArray;
+
+        class Particle {
+            constructor(x, y, directionX, directionY, size, color) {
+                this.x = x; this.y = y; this.directionX = directionX; this.directionY = directionY; this.size = size; this.color = color;
+            }
+            draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false); ctx.fillStyle = this.color; ctx.fill(); }
+            update() {
+                if (this.x > canvas.width || this.x < 0) this.directionX = -this.directionX;
+                if (this.y > canvas.height || this.y < 0) this.directionY = -this.directionY;
+                this.x += this.directionX; this.y += this.directionY; this.draw();
+            }
+        }
+        function init() {
+            particlesArray = [];
+            let numberOfParticles = (canvas.height * canvas.width) / 9000;
+            for (let i = 0; i < numberOfParticles; i++) {
+                let size = (Math.random() * 3) + 1;
+                let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+                let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+                let directionX = (Math.random() * 2) - 1; let directionY = (Math.random() * 2) - 1;
+                let color = 'rgba(255, 255, 255, 0.5)';
+                particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
+            }
+        }
+        function connect() {
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) + 
+                                   ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+                    if (distance < (canvas.width/7) * (canvas.height/7)) {
+                        ctx.strokeStyle = 'rgba(255, 255, 255,' + (1 - (distance / 20000)) + ')';
+                        ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(particlesArray[a].x, particlesArray[a].y); ctx.lineTo(particlesArray[b].x, particlesArray[b].y); ctx.stroke();
+                    }
+                }
+            }
+        }
+        function animate() { requestAnimationFrame(animate); ctx.clearRect(0, 0, innerWidth, innerHeight); for (let i = 0; i < particlesArray.length; i++) { particlesArray[i].update(); } connect(); }
+        window.addEventListener('resize', function(){ canvas.width = innerWidth; canvas.height = innerHeight; init(); });
+        
+        // --- 🚨 NEW AUTO-DISMISS CODE 🚨 ---
+        // This makes the "Message Received" alert fade away after 4 seconds
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const alerts = document.querySelectorAll('[style*="position: fixed"]');
+            if (alerts.length > 0) {
+                setTimeout(() => {
+                    alerts.forEach(alert => {
+                        alert.style.transition = "opacity 0.5s ease";
+                        alert.style.opacity = "0";
+                        setTimeout(() => alert.remove(), 500);
+                    });
+                }, 4000); // 4 seconds delay
+            }
+        });
+
+        init(); animate();
+    </script>
+</body>
+</html>

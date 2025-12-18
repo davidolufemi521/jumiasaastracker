@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meet the Engineer | David Olufemi</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* --- CRAZY ANIMATED BACKGROUND --- */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: white;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Floating Shapes for 3D Feel */
+        .circles {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: hidden; z-index: -1;
+        }
+        .circles li {
+            position: absolute; display: block; list-style: none; width: 20px; height: 20px;
+            background: rgba(255, 255, 255, 0.2); animation: floatUp 25s linear infinite; bottom: -150px;
+            border-radius: 50%;
+        }
+        .circles li:nth-child(1) { left: 25%; width: 80px; height: 80px; animation-delay: 0s; }
+        .circles li:nth-child(2) { left: 10%; width: 20px; height: 20px; animation-delay: 2s; animation-duration: 12s; }
+        .circles li:nth-child(3) { left: 70%; width: 20px; height: 20px; animation-delay: 4s; }
+        .circles li:nth-child(4) { left: 40%; width: 60px; height: 60px; animation-delay: 0s; animation-duration: 18s; }
+        .circles li:nth-child(5) { left: 65%; width: 20px; height: 20px; animation-delay: 0s; }
+        .circles li:nth-child(6) { left: 75%; width: 110px; height: 110px; animation-delay: 3s; }
+        
+        @keyframes floatUp {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-1000px) rotate(720deg); opacity: 0; }
+        }
+
+        /* --- CONTAINER: GLASSMORPHISM --- */
+        .glass-container {
+            max-width: 900px; margin: 60px auto; padding: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            animation: slideUp 1s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        h1 { font-size: 3rem; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .subtitle { font-size: 1.2rem; margin-top: 10px; color: #f0f0f0; font-weight: 300; letter-spacing: 1px; }
+
+        /* --- THE PROBLEM & SOLUTION --- */
+        .hook-section { margin: 40px 0; border-left: 5px solid #f68b1e; padding-left: 20px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 0 10px 10px 0; }
+        .hook-title { font-size: 1.5rem; font-weight: bold; color: #ffcc00; margin-bottom: 10px; }
+        
+        /* --- BOUNCING TECH STACK --- */
+        .tech-container { display: flex; flex-wrap: wrap; gap: 15px; margin: 30px 0; justify-content: center; }
+        .tech-tag {
+            background: white; color: #333; padding: 10px 20px; border-radius: 50px;
+            font-weight: bold; font-size: 14px; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy effect */
+        }
+        .tech-tag:hover { transform: scale(1.2) rotate(-3deg); background: #f68b1e; color: white; }
+
+        /* --- 3D CARDS FOR CHALLENGES --- */
+        .challenges-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px; }
+        .challenge-card {
+            background: rgba(0, 0, 0, 0.3); padding: 25px; border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: 0.4s; position: relative; overflow: hidden;
+        }
+        .challenge-card:hover { transform: translateY(-10px) scale(1.02); background: rgba(255, 255, 255, 0.2); color: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+        .challenge-card:hover h3 { color: #f68b1e; }
+        .challenge-card:hover p { color: #333; }
+        
+        .card-icon { font-size: 30px; margin-bottom: 15px; color: #ffcc00; display: block; }
+
+        /* --- HIRE ME BUTTON --- */
+        .cta-section { text-align: center; margin-top: 50px; }
+        .btn-hire {
+            display: inline-block; background: #fff; color: #333;
+            padding: 15px 40px; border-radius: 30px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
+            text-decoration: none; font-size: 18px; position: relative; overflow: hidden;
+            box-shadow: 0 0 20px rgba(255,255,255,0.5);
+            transition: 0.3s;
+        }
+        .btn-hire:hover { 
+            transform: scale(1.1); 
+            box-shadow: 0 0 40px #f68b1e; 
+            background: #f68b1e; color: white;
+        }
+
+        .back-link { display: block; margin-top: 20px; color: rgba(255,255,255,0.7); text-decoration: none; }
+        .back-link:hover { color: white; text-decoration: underline; }
+
+    </style>
+</head>
+<body>
+
+    <ul class="circles">
+        <li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li><li></li>
+    </ul>
+
+    <div class="glass-container">
+        <h1>David Olufemi 👨‍💻</h1>
+        <div class="subtitle">Python Automation Developer | Machine Learning Engineer</div>
+
+        <div class="hook-section">
+            <div class="hook-title">⚡ The Problem: Checking Prices is for Robots.</div>
+            <p>Humans shouldn't waste hours hitting "refresh" waiting for a discount. I built <strong>JumiaTracker</strong> to solve this reality. It automates the boring stuff so you can save money while you sleep.</p>
+        </div>
+
+        <h3>🚀 The Tech Stack That Powers It</h3>
+        <div class="tech-container">
+            <span class="tech-tag">🐍 Python 3.10</span>
+            <span class="tech-tag">🌶️ Flask</span>
+            <span class="tech-tag">🕸️ BeautifulSoup4</span>
+            <span class="tech-tag">🧠 Regex Algorithms</span>
+            <span class="tech-tag">🤖 Background Workers</span>
+            <span class="tech-tag">🗄️ SQL Alchemy</span>
+        </div>
+
+        <h3>🛠️ Impossible Challenges I Solved</h3>
+        <div class="challenges-grid">
+            
+            <div class="challenge-card">
+                <span class="card-icon"><i class="fas fa-ghost"></i></span>
+                <h3>Stealth Mode Scraping</h3>
+                <p>Websites hate bots. I engineered a "Human-Mimic" system with User-Agent rotation and randomized delays. The bot behaves exactly like a real user to avoid IP bans.</p>
+            </div>
+
+            <div class="challenge-card">
+                <span class="card-icon"><i class="fas fa-radiation"></i></span>
+                <h3>"Nuclear" Regex Parser</h3>
+                <p>HTML classes change constantly. I wrote a custom Regular Expression algorithm that ignores the code structure and hunts for pure price patterns (₦), making the scraper unbreakable.</p>
+            </div>
+
+            <div class="challenge-card">
+                <span class="card-icon"><i class="fas fa-sync-alt"></i></span>
+                <h3>Auto-Healing Market</h3>
+                <p>Dead links are annoying. My background worker acts as a janitor—detecting 404s, removing them, and auto-restocking the marketplace with 50 fresh deals every 24 hours.</p>
+            </div>
+
+        </div>
+
+        <div class="cta-section">
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">
+                I build applications that <strong>kill repetitive manual work.</strong><br>
+                Need automation? Let's talk.
+            </p>
+            <a href="https://www.linkedin.com/in/david-olufemi-243b25380" target="_blank" class="btn-hire">
+                <i class="fab fa-linkedin"></i> Hire David
+            </a>
+            <br>
+            <a href="/" class="back-link">← Return to Dashboard</a>
+        </div>
+    </div>
+
+</body>
+</html>
