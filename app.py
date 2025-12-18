@@ -397,6 +397,20 @@ def login():
         else: flash('Email not found.', 'danger')
     return render_template('login.html')
 
+# --- 1. ADD THIS HELPER FUNCTION OUTSIDE THE ROUTE ---
+def send_async_email(app, recipient, otp_code):
+    """Sends email in the background to prevent server crashing."""
+    with app.app_context():
+        try:
+            print(f"⏳ Background: Sending OTP to {recipient}...", flush=True)
+            msg = Message('Verify Account', sender=app.config['MAIL_USERNAME'], recipients=[recipient])
+            msg.body = f"Your Verification Code is: {otp_code}"
+            mail.send(msg)
+            print(f"✅ Background: Email sent successfully to {recipient}!", flush=True)
+        except Exception as e:
+            print(f"❌ Background Email Failed: {str(e)}", flush=True)
+
+# --- 2. YOUR ORIGINAL REGISTER ROUTE (WITH THREADING ADDED) ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -405,11 +419,13 @@ def register():
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
 
+        # [KEEPING YOUR REGEX CHECK]
         email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not re.match(email_regex, email):
             flash('Invalid email address format.', 'danger')
             return redirect(url_for('register'))
 
+        # [KEEPING YOUR TYPO CHECK]
         domain = email.split('@')[-1]
         common_typos = {
             "gmil.com": "gmail.com", "gmal.com": "gmail.com", "gmaill.com": "gmail.com",
@@ -424,42 +440,46 @@ def register():
             flash('Passwords do not match!', 'danger')
             return redirect(url_for('register'))
 
+        # Generate OTP
         otp = str(random.randint(100000, 999999))
         expiry = datetime.utcnow() + timedelta(minutes=20)
         
+        # Always print OTP to logs for safety
+        print(f"🔥🔥🔥 NEW OTP GENERATED: {otp} 🔥🔥🔥", flush=True) 
+
         user = User.query.filter_by(email=email).first()
         
         if user:
+            # [CASE A: USER EXISTS BUT NOT VERIFIED]
             if not user.is_verified:
                 user.name = name
                 user.password = generate_password_hash(password, method='pbkdf2:sha256')
                 user.otp_code = otp
                 user.otp_expiry = expiry
                 db.session.commit()
-                try:
-                    msg = Message('Verify Account', sender=app.config['MAIL_USERNAME'], recipients=[email])
-                    msg.body = f"Your New Code is: {otp}"
-                    mail.send(msg)
-                    session['email_to_verify'] = email
-                    flash('Account found but not verified. Sending new code...', 'info')
-                    return redirect(url_for('verify_otp'))
-                except:
-                    flash('Error sending email', 'danger')
+                
+                # ⚡ THREADED EMAIL (Non-Blocking)
+                threading.Thread(target=send_async_email, args=(app._get_current_object(), email, otp)).start()
+                
+                session['email_to_verify'] = email
+                flash('Account found but not verified. Sending new code...', 'info')
+                return redirect(url_for('verify_otp'))
             else:
+                # [CASE B: USER ALREADY VERIFIED]
                 flash('Email already registered. Please Login.', 'warning')
                 return redirect(url_for('login'))
         else:
-            db.session.add(User(name=name, email=email, password=generate_password_hash(password, method='pbkdf2:sha256'), otp_code=otp, otp_expiry=expiry))
+            # [CASE C: NEW USER]
+            new_user = User(name=name, email=email, password=generate_password_hash(password, method='pbkdf2:sha256'), otp_code=otp, otp_expiry=expiry)
+            db.session.add(new_user)
             db.session.commit()
-            try:
-                msg = Message('Verify Account', sender=app.config['MAIL_USERNAME'], recipients=[email])
-                msg.body = f"Code: {otp}"
-                mail.send(msg)
-                session['email_to_verify'] = email
-                return redirect(url_for('verify_otp'))
-            except: 
-                flash('Error sending email', 'danger')
-                
+            
+            # ⚡ THREADED EMAIL (Non-Blocking)
+            threading.Thread(target=send_async_email, args=(app._get_current_object(), email, otp)).start()
+            
+            session['email_to_verify'] = email
+            return redirect(url_for('verify_otp'))
+            
     return render_template('register.html')
 
 @app.route('/verify', methods=['GET', 'POST'])
@@ -647,5 +667,6 @@ if __name__ == '__main__':
     # use_reloader=False prevents the bot from starting twice
 
     app.run(debug=True, port=5001, use_reloader=False)
+
 
 
