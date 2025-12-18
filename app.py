@@ -43,9 +43,16 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///jumia_saas.db'
 
 # --- EMAIL SETTINGS ---
+# --- EMAIL CONFIGURATION (GMAIL) ---
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_TLS'] = True   # REQUIRED for Port 587
+app.config['MAIL_USE_SSL'] = False  # MUST be False if TLS is True
+app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER')
+app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_USER')
+# Timeout fix: Stop it from loading forever if it fails
+app.config['MAIL_ASCII_ATTACHMENTS'] = False
 # Get Email Creds from Environment (Render) or use default (Laptop)
 app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER', 'jumiatracker.alert@gmail.com')
 app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS', 'grjjyxxzxcidknou')
@@ -640,4 +647,5 @@ if __name__ == '__main__':
     # use_reloader=False prevents the bot from starting twice
 
     app.run(debug=True, port=5001, use_reloader=False)
+
 
