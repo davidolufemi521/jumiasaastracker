@@ -561,6 +561,51 @@ def submit_public_feedback():
     else:
         flash("❌ Message cannot be empty.", "warning")
     return redirect(url_for('index'))
+# --- 🛠️ DEPLOYMENT HELPER ROUTE ---
+@app.route('/deploy-fix')
+def deploy_fix():
+    # 1. Create Tables
+    with app.app_context():
+        db.create_all()
+    
+    # 2. Scrape Jumia (Page 1 Only)
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        
+        session = requests.Session()
+        session.headers.update({"User-Agent": "Mozilla/5.0"})
+        url = "https://www.jumia.com.ng/mobile-phones/"
+        
+        response = session.get(url)
+        soup = BeautifulSoup(response.content, "html.parser")
+        articles = soup.find_all("article", class_="prd")
+        
+        count = 0
+        for article in articles:
+            try:
+                link_tag = article.find("a", class_="core")
+                name_tag = article.find("h3", class_="name")
+                price_tag = article.find("div", class_="prc")
+                
+                if link_tag and name_tag and price_tag:
+                    link = "https://www.jumia.com.ng" + link_tag.get("href")
+                    name = name_tag.get_text().strip()
+                    price_clean = price_tag.get_text().strip().replace("₦", "").replace(",", "").split("-")[0]
+                    price = float(price_clean)
+                    
+                    if not Product.query.filter_by(link=link).first():
+                        new_prod = Product(link=link, name=name, current_price=price, old_price=price, is_public=True)
+                        db.session.add(new_prod)
+                        db.session.add(PriceHistory(product_id=new_prod.id, price=price))
+                        count += 1
+            except: continue
+            
+        db.session.commit()
+        return f"✅ SUCCESS! Database Created & Seeded with {count} items. <a href='/dashboard'>Go to Dashboard</a>"
+        
+    except Exception as e:
+        return f"❌ ERROR: {str(e)}"
 
 # --- 🚀 MERGED RUNNER (WEBSITE + BOT) ---
 def run_bot_in_background():
@@ -587,4 +632,5 @@ if __name__ == '__main__':
     
     with app.app_context(): db.create_all()
     # use_reloader=False prevents the bot from starting twice
+
     app.run(debug=True, port=5001, use_reloader=False)
