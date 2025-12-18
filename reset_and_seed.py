@@ -1,27 +1,26 @@
 import os
-from app import app, db, Product, PriceHistory
 import requests
-from bs4 import BeautifulSoup
 import time
 import random
+from bs4 import BeautifulSoup
+from app import app, db, Product, PriceHistory
 
 def reset_and_seed():
-    print("⚠️  INITIATING DATABASE RESET (HIGH YIELD VERSION)...")
+    print("⚠️  INITIATING DATABASE RESET (DEPLOYMENT READY)...")
     
-    # 1. FORCE DELETE OLD DB
-    db_file = "jumia_saas.db"
-    if os.path.exists(db_file):
-        try:
-            os.remove(db_file)
-            print(f"✅ Old database deleted.")
-        except PermissionError:
-            print("❌ ERROR: Close the running app first!")
-            return
-
-    # 2. CREATE NEW DB
+    # 1. SMART WIPE (Works for both SQLite and PostgreSQL)
     with app.app_context():
-        db.create_all()
-        print("✅ New Database Created.")
+        try:
+            print("🗑️  Dropping old tables...")
+            db.drop_all()  # This deletes all tables in the connected DB
+            print("✅  Tables dropped.")
+            
+            print("🔨  Creating new tables...")
+            db.create_all() # This creates fresh tables
+            print("✅  New Database Ready.")
+        except Exception as e:
+            print(f"❌ Database Error: {e}")
+            return
 
         print("🚀 Starting Bulk Scrape (Pages 1-5)...")
         
