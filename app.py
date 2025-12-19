@@ -370,13 +370,24 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user:
             if check_password_hash(user.password, password):
+                # Reset login attempts on success
                 user.login_attempts = 0
                 db.session.commit()
+                
                 if user.is_verified:
                     login_user(user)
                     return redirect(url_for('home'))
                 else:
-                    flash('Verify email first.', 'warning')
+                    # ✅ THIS IS THE ONLY CHANGE: Send OTP automatically!
+                    otp = str(random.randint(100000, 999999))
+                    user.otp_code = otp
+                    user.otp_expiry = datetime.utcnow() + timedelta(minutes=20)
+                    db.session.commit()
+
+                    # Send the email immediately
+                    threading.Thread(target=send_async_email, args=(app, email, otp)).start()
+
+                    flash('Verify email first. New code sent!', 'warning')
                     session['email_to_verify'] = email
                     return redirect(url_for('verify_otp'))
             else:
@@ -387,9 +398,9 @@ def login():
                     return redirect(url_for('forgot_password'))
                 else:
                     flash(f'Invalid Password. Attempt {user.login_attempts}/4', 'danger')
-        else: flash('Email not found.', 'danger')
+        else:
+            flash('Email not found.', 'danger')
     return render_template('login.html')
-
 # --- 🚀 NEW RESEND EMAIL FUNCTION (REPLACES FLASK-MAIL) ---
 def send_async_email(app, recipient, otp_code):
     """Sends email in the background using Resend API"""
@@ -661,4 +672,5 @@ if __name__ == '__main__':
     with app.app_context(): db.create_all()
 
     app.run(debug=True, port=5001, use_reloader=False)
+
 
