@@ -476,7 +476,7 @@ def register():
             db.session.commit()
             
             # ⚡ THREADED RESEND EMAIL
-            threading.Thread(target=send_async_email, args=(app._get_current_object(), email, otp)).start()
+            threading.Thread(target=send_async_email, args=(app, email, otp)).start()
             
             session['email_to_verify'] = email
             return redirect(url_for('verify_otp'))
@@ -661,3 +661,4 @@ if __name__ == '__main__':
     with app.app_context(): db.create_all()
 
     app.run(debug=True, port=5001, use_reloader=False)
+
