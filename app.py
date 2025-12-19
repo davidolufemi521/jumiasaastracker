@@ -42,16 +42,15 @@ else:
     # We are on Laptop (Use SQLite)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///jumia_saas.db'
 
-# --- EMAIL SETTINGS ---
-# --- EMAIL CONFIGURATION (GMAIL) ---
-# --- EMAIL CONFIGURATION (BREVO / SENDINBLUE) ---
-app.config['MAIL_SERVER'] = 'smtp-relay.brevo.com'  # <--- Changed to Brevo
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER') 
-app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS') 
+app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER')
+app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_USER')
+
+mail = Mail(app)
 
 # --- 🛡️ DATABASE STABILITY FIX (REQUIRED) ---
 # Keep this to prevent that "SSL Decryption Failed" error you saw earlier
@@ -73,7 +72,6 @@ if not database_url:
         except Exception as e:
             print(f"⚠️ Note: Could not set WAL mode: {e}")
 
-mail = Mail(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -670,6 +668,7 @@ if __name__ == '__main__':
     # use_reloader=False prevents the bot from starting twice
 
     app.run(debug=True, port=5001, use_reloader=False)
+
 
 
 
