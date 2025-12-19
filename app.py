@@ -3,7 +3,8 @@ import threading
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from flask_mail import Mail, Message
+# ❌ REMOVED: from flask_mail import Mail, Message
+import resend  # ✅ ADDED: Resend Library
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from sqlalchemy import desc
@@ -14,7 +15,6 @@ import re
 from datetime import datetime, timedelta
 
 # 🚨 IMPORT YOUR BOT (Safely)
-# This imports the start_bot function from bot_worker.py
 try:
     from bot_worker import start_bot
 except ImportError:
@@ -34,7 +34,6 @@ database_url = os.environ.get('DATABASE_URL')
 
 if database_url:
     # We are on Render (Use PostgreSQL)
-    # Fix Render's URL format (postgres:// -> postgresql://)
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
@@ -42,18 +41,11 @@ else:
     # We are on Laptop (Use SQLite)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///jumia_saas.db'
 
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('EMAIL_USER')
-app.config['MAIL_PASSWORD'] = os.environ.get('EMAIL_PASS')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_USER')
-
-mail = Mail(app)
+# ❌ REMOVED: All old MAIL_SERVER configs
+# ✅ ADDED: Resend Configuration
+resend.api_key = os.environ.get("RESEND_API_KEY")
 
 # --- 🛡️ DATABASE STABILITY FIX (REQUIRED) ---
-# Keep this to prevent that "SSL Decryption Failed" error you saw earlier
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "pool_pre_ping": True,
     "pool_recycle": 300,
@@ -131,7 +123,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- SCRAPER FUNCTION (UPDATED) ---
+# --- SCRAPER FUNCTION ---
 def scrape_jumia_product(url):
     if "jumia.com.ng" not in url:
         print("❌ Rejected: Not a Jumia link")
@@ -398,20 +390,34 @@ def login():
         else: flash('Email not found.', 'danger')
     return render_template('login.html')
 
-# --- 1. ADD THIS HELPER FUNCTION OUTSIDE THE ROUTE ---
+# --- 🚀 NEW RESEND EMAIL FUNCTION (REPLACES FLASK-MAIL) ---
 def send_async_email(app, recipient, otp_code):
-    """Sends email in the background to prevent server crashing."""
+    """Sends email in the background using Resend API"""
     with app.app_context():
         try:
-            print(f"⏳ Background: Sending OTP to {recipient}...", flush=True)
-            msg = Message('Verify Account', sender=app.config['MAIL_USERNAME'], recipients=[recipient])
-            msg.body = f"Your Verification Code is: {otp_code}"
-            mail.send(msg)
-            print(f"✅ Background: Email sent successfully to {recipient}!", flush=True)
+            print(f"⏳ Background: Sending OTP to {recipient} via Resend...", flush=True)
+            
+            r = resend.Emails.send({
+                "from": "Naija Price Tracker <info@naija-price-tracker.name.ng>",
+                "to": recipient,
+                "subject": "Your Verification Code",
+                "html": f"""
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto;'>
+                    <h2 style='color: #FF9900;'>Naija Price Tracker</h2>
+                    <p>Hello,</p>
+                    <p>Your verification code is:</p>
+                    <div style='background: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; border-radius: 5px;'>
+                        {otp_code}
+                    </div>
+                    <p>This code expires in 20 minutes.</p>
+                </div>
+                """
+            })
+            print(f"✅ Background: Resend Email ID: {r.get('id')}", flush=True)
         except Exception as e:
             print(f"❌ Background Email Failed: {str(e)}", flush=True)
 
-# --- 2. YOUR ORIGINAL REGISTER ROUTE (WITH THREADING ADDED) ---
+# --- REGISTER ROUTE (UPDATED) ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -420,13 +426,11 @@ def register():
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
 
-        # [KEEPING YOUR REGEX CHECK]
         email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not re.match(email_regex, email):
             flash('Invalid email address format.', 'danger')
             return redirect(url_for('register'))
 
-        # [KEEPING YOUR TYPO CHECK]
         domain = email.split('@')[-1]
         common_typos = {
             "gmil.com": "gmail.com", "gmal.com": "gmail.com", "gmaill.com": "gmail.com",
@@ -445,13 +449,11 @@ def register():
         otp = str(random.randint(100000, 999999))
         expiry = datetime.utcnow() + timedelta(minutes=20)
         
-        # Always print OTP to logs for safety
         print(f"🔥🔥🔥 NEW OTP GENERATED: {otp} 🔥🔥🔥", flush=True) 
 
         user = User.query.filter_by(email=email).first()
         
         if user:
-            # [CASE A: USER EXISTS BUT NOT VERIFIED]
             if not user.is_verified:
                 user.name = name
                 user.password = generate_password_hash(password, method='pbkdf2:sha256')
@@ -459,23 +461,21 @@ def register():
                 user.otp_expiry = expiry
                 db.session.commit()
                 
-                # ⚡ THREADED EMAIL (Non-Blocking)
+                # ⚡ THREADED RESEND EMAIL
                 threading.Thread(target=send_async_email, args=(app, email, otp)).start()
                 
                 session['email_to_verify'] = email
                 flash('Account found but not verified. Sending new code...', 'info')
                 return redirect(url_for('verify_otp'))
             else:
-                # [CASE B: USER ALREADY VERIFIED]
                 flash('Email already registered. Please Login.', 'warning')
                 return redirect(url_for('login'))
         else:
-            # [CASE C: NEW USER]
             new_user = User(name=name, email=email, password=generate_password_hash(password, method='pbkdf2:sha256'), otp_code=otp, otp_expiry=expiry)
             db.session.add(new_user)
             db.session.commit()
             
-            # ⚡ THREADED EMAIL (Non-Blocking)
+            # ⚡ THREADED RESEND EMAIL
             threading.Thread(target=send_async_email, args=(app._get_current_object(), email, otp)).start()
             
             session['email_to_verify'] = email
@@ -511,7 +511,7 @@ def resend_otp():
         user.otp_expiry = datetime.utcnow() + timedelta(minutes=20)
         db.session.commit()
         
-        # ⚡ THREADED EMAIL (Prevents Timeout/Crash)
+        # ⚡ THREADED RESEND EMAIL
         threading.Thread(target=send_async_email, args=(app, email, otp)).start()
         
         flash('✅ New code sent! Check your email.', 'success')
@@ -529,7 +529,7 @@ def forgot_password():
             user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
             db.session.commit()
             
-            # ⚡ THREADED EMAIL
+            # ⚡ THREADED RESEND EMAIL
             threading.Thread(target=send_async_email, args=(app, email, otp)).start()
             
             session['email_reset'] = email
@@ -646,9 +646,7 @@ def run_bot_in_background():
 
 # 🚨 CRITICAL DEPLOYMENT FIX 🚨
 # 1. RENDER (GUNICORN) STARTUP
-# Gunicorn doesn't run __main__, so we check if we are on Render.
 if os.environ.get("RENDER"):
-    # Ensure we don't start multiple threads if Gunicorn has multiple workers (Safety check)
     if not any(t.name == "JumiaBotThread" for t in threading.enumerate()):
         t = threading.Thread(target=run_bot_in_background, name="JumiaBotThread", daemon=True)
         t.start()
@@ -656,20 +654,10 @@ if os.environ.get("RENDER"):
 
 # 2. LOCAL STARTUP
 if __name__ == '__main__':
-    # Start bot locally
     t = threading.Thread(target=run_bot_in_background, name="JumiaBotThread", daemon=True)
     t.start()
     print("🚀 Local: Bot Started!")
     
     with app.app_context(): db.create_all()
-    # use_reloader=False prevents the bot from starting twice
 
     app.run(debug=True, port=5001, use_reloader=False)
-
-
-
-
-
-
-
-
