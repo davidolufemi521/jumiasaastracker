@@ -1,9 +1,10 @@
 import time
 import random
 import re
+import os  # ✅ ADDED: To get API Key
 import requests
+import resend  # ✅ ADDED: Resend Library
 from bs4 import BeautifulSoup
-from flask_mail import Message
 
 # ⚠️ NOTE: We do NOT import 'app' at the top level to prevent crashing.
 # We import it inside the functions instead.
@@ -13,42 +14,59 @@ MIN_WAIT = 5
 MAX_WAIT = 10
 HOURS_UNTIL_RESTOCK = 24
 
-# --- EMAIL FUNCTIONS ---
+# ✅ CONFIGURE RESEND
+resend.api_key = os.environ.get("RESEND_API_KEY")
+
+# --- EMAIL FUNCTIONS (UPDATED FOR RESEND) ---
 def send_price_drop_email(user_email, product_name, new_price, old_price, link, image, stock):
-    # 🚨 Import inside function to avoid circular import
-    from app import app, mail
     try:
+        print(f"⏳ Sending Price Drop Alert to {user_email}...", flush=True)
+        
         subject = f"📉 Price Drop Alert: {product_name[:30]}..."
         stock_msg = f"<p style='color: red; font-weight: bold;'>⚠️ {stock}</p>" if stock else ""
         
-        msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[user_email])
-        msg.html = f"""
-        <h2>🔥 Price Drop Alert!</h2>
-        <img src="{image}" style="width: 150px;">
-        <h3>{product_name}</h3>
-        <p>Old Price: <strike>₦{old_price:,.0f}</strike></p>
-        <p><strong>New Price: ₦{new_price:,.0f}</strong></p>
-        {stock_msg}
-        <a href="{link}">Buy Now</a>
-        """
-        mail.send(msg)
-        print(f"   📧 Email sent to {user_email}")
+        # ✅ NEW: Use Resend API
+        r = resend.Emails.send({
+            "from": "Naija Price Tracker <info@naija-price-tracker.name.ng>",
+            "to": user_email,
+            "subject": subject,
+            "html": f"""
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px;'>
+                <h2 style='color: #28a745;'>🔥 Price Drop Alert!</h2>
+                <img src="{image}" style="width: 150px; border-radius: 5px;">
+                <h3>{product_name}</h3>
+                <p style='font-size: 16px;'>Old Price: <strike style='color: #888;'>₦{old_price:,.0f}</strike></p>
+                <p style='font-size: 20px; font-weight: bold; color: #28a745;'>New Price: ₦{new_price:,.0f}</p>
+                {stock_msg}
+                <br>
+                <a href="{link}" style="background-color: #FF9900; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Buy Now on Jumia</a>
+            </div>
+            """
+        })
+        print(f"   ✅ Email sent! ID: {r.get('id')}")
     except Exception as e:
         print(f"   ❌ Email Failed: {e}")
 
 def send_product_removed_email(user_email, product_name, link):
-    from app import app, mail
     try:
         subject = f"❌ Product Removed: {product_name[:30]}..."
-        msg = Message(subject, sender=app.config['MAIL_USERNAME'], recipients=[user_email])
-        msg.html = f"""
-        <h3>Item Discontinued</h3>
-        <p>The product <strong>{product_name}</strong> has been removed from Jumia.</p>
-        <p>We have removed it from your watchlist.</p>
-        """
-        mail.send(msg)
+        
+        # ✅ NEW: Use Resend API
+        resend.Emails.send({
+            "from": "Naija Price Tracker <info@naija-price-tracker.name.ng>",
+            "to": user_email,
+            "subject": subject,
+            "html": f"""
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto;'>
+                <h3 style='color: #d9534f;'>Item Discontinued</h3>
+                <p>The product <strong>{product_name}</strong> has been removed from Jumia (Dead Link).</p>
+                <p>We have automatically removed it from your watchlist.</p>
+            </div>
+            """
+        })
         print(f"   🗑️ Removal Email sent to {user_email}")
-    except: pass
+    except Exception as e:
+        print(f"   ❌ Removal Email Failed: {e}")
 
 # --- STOCK FINDER ---
 def find_stock_status(soup):
@@ -192,7 +210,6 @@ def start_bot():
                         p.current_price = found_price
                         db.session.commit()
                     else:
-                        # 🚨 UPDATED LOGIC TO SHOW STOCK AGAIN
                         stock_msg = f"| {stock_status}" if stock_status else ""
                         print(f"✅ OK (₦{found_price:,.0f}) {stock_msg}")
 
