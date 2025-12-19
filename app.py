@@ -123,7 +123,7 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- SCRAPER FUNCTION ---
+# --- SCRAPER FUNCTION (UPDATED FOR PRICE RANGES) ---
 def scrape_jumia_product(url):
     if "jumia.com.ng" not in url:
         print("❌ Rejected: Not a Jumia link")
@@ -158,13 +158,14 @@ def scrape_jumia_product(url):
         meta_image = soup.find("meta", property="og:image")
         if meta_image: image_url = meta_image["content"]
 
-        # 3. PRICE
+        # 3. PRICE (✅ FIXED FOR RANGES)
         price = 0.0
         price_element = soup.select_one(".-fs24") # Look for bold price
         if price_element:
             try:
                 raw_text = price_element.get_text().strip()
-                clean_text = raw_text.replace("₦", "").replace(",", "").strip()
+                # 🛠️ FIX: Split by '-' to handle ranges like "14,000 - 16,000"
+                clean_text = raw_text.replace("₦", "").replace(",", "").split("-")[0].strip()
                 price = float(clean_text)
             except: pass
         
@@ -672,5 +673,6 @@ if __name__ == '__main__':
     with app.app_context(): db.create_all()
 
     app.run(debug=True, port=5001, use_reloader=False)
+
 
 
