@@ -511,13 +511,11 @@ def resend_otp():
         user.otp_expiry = datetime.utcnow() + timedelta(minutes=20)
         db.session.commit()
         
-        try:
-            msg = Message('New Verification Code', sender=app.config['MAIL_USERNAME'], recipients=[email])
-            msg.body = f"Your New Code is: {otp}"
-            mail.send(msg)
-            flash('✅ New code sent! Check your email.', 'success')
-        except Exception as e:
-            flash(f'Error sending email: {e}', 'danger')
+        # ⚡ THREADED EMAIL (Prevents Timeout/Crash)
+        threading.Thread(target=send_async_email, args=(app, email, otp)).start()
+        
+        flash('✅ New code sent! Check your email.', 'success')
+    
     return redirect(url_for('verify_otp'))
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
@@ -530,14 +528,13 @@ def forgot_password():
             user.otp_code = otp
             user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
             db.session.commit()
-            try:
-                msg = Message('Password Reset Code', sender=app.config['MAIL_USERNAME'], recipients=[email])
-                msg.body = f"Your Password Reset Code is: {otp}"
-                mail.send(msg)
-                session['email_reset'] = email
-                flash('OTP sent to your email.', 'info')
-                return redirect(url_for('reset_password'))
-            except: flash('Error sending email.', 'danger')
+            
+            # ⚡ THREADED EMAIL
+            threading.Thread(target=send_async_email, args=(app, email, otp)).start()
+            
+            session['email_reset'] = email
+            flash('OTP sent to your email.', 'info')
+            return redirect(url_for('reset_password'))
         else:
             flash('Email not found.', 'warning')
     return render_template('forgot_password.html')
@@ -668,6 +665,7 @@ if __name__ == '__main__':
     # use_reloader=False prevents the bot from starting twice
 
     app.run(debug=True, port=5001, use_reloader=False)
+
 
 
 
