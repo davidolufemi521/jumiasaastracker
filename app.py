@@ -460,7 +460,7 @@ def register():
                 db.session.commit()
                 
                 # ⚡ THREADED EMAIL (Non-Blocking)
-                threading.Thread(target=send_async_email, args=(app._get_current_object(), email, otp)).start()
+                threading.Thread(target=send_async_email, args=(app, email, otp)).start()
                 
                 session['email_to_verify'] = email
                 flash('Account found but not verified. Sending new code...', 'info')
@@ -668,6 +668,7 @@ if __name__ == '__main__':
     # use_reloader=False prevents the bot from starting twice
 
     app.run(debug=True, port=5001, use_reloader=False)
+
 
 
 
