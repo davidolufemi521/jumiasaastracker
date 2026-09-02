@@ -626,7 +626,15 @@ def deploy_fix():
         
         session = requests.Session()
         session.headers.update({"User-Agent": "Mozilla/5.0"})
-        url = "https://www.jumia.com.ng/mobile-phones/?sort=newest"
+        CATEGORIES = [
+            "https://www.jumia.com.ng/mobile-phones/?sort=newest",
+            "https://www.jumia.com.ng/electronics/?sort=newest",
+            "https://www.jumia.com.ng/computing/?sort=newest",
+            "https://www.jumia.com.ng/category-fashion-by-jumia/?sort=newest",
+            "https://www.jumia.com.ng/home-office/?sort=newest",
+            "https://www.jumia.com.ng/health-beauty/?sort=newest"
+        ]
+        url = random.choice(CATEGORIES)
         
         response = session.get(url)
         soup = BeautifulSoup(response.content, "html.parser")

@@ -89,8 +89,16 @@ def find_stock_status(soup):
 # --- RESTOCK FUNCTION ---
 def restock_marketplace():
     from app import app, db, Product, PriceHistory
-    print("\n🚚 RUNNING MARKET RESTOCK...")
-    JUMIA_CATEGORY = "https://www.jumia.com.ng/mobile-phones/?sort=newest"
+    CATEGORIES = [
+        "https://www.jumia.com.ng/mobile-phones/?sort=newest",
+        "https://www.jumia.com.ng/electronics/?sort=newest",
+        "https://www.jumia.com.ng/computing/?sort=newest",
+        "https://www.jumia.com.ng/category-fashion-by-jumia/?sort=newest",
+        "https://www.jumia.com.ng/home-office/?sort=newest",
+        "https://www.jumia.com.ng/health-beauty/?sort=newest"
+    ]
+    JUMIA_CATEGORY = random.choice(CATEGORIES)
+    print(f"\n🚚 RUNNING MARKET RESTOCK FROM: {JUMIA_CATEGORY}")
     session = requests.Session()
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
