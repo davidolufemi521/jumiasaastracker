@@ -126,7 +126,7 @@ def restock_marketplace():
                         img_tag = card.find("img", class_="img")
                         image_url = img_tag.get("data-src") if img_tag else ""
                         if price > 0:
-                            new_prod = Product(link=link, name=name, current_price=price, old_price=price, image_url=image_url, is_public=True)
+                            new_prod = Product(link=link, name=name, current_price=price, old_price=price, image_url=image_url, stock_left="In stock", is_public=True)
                             db.session.add(new_prod)
                             db.session.commit()
                             db.session.add(PriceHistory(product_id=new_prod.id, price=price))

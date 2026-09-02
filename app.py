@@ -685,7 +685,9 @@ def deploy_fix():
                     price = float(price_clean)
                     
                     if not Product.query.filter_by(link=link).first():
-                        new_prod = Product(link=link, name=name, current_price=price, old_price=price, is_public=True)
+                        img_tag = article.find("img", class_="img")
+                        image_url = img_tag.get("data-src") if img_tag else ""
+                        new_prod = Product(link=link, name=name, current_price=price, old_price=price, image_url=image_url, stock_left="In stock", is_public=True)
                         db.session.add(new_prod)
                         
                         # 🚨 THIS IS THE FIX: Force DB to generate the ID now
