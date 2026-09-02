@@ -660,18 +660,12 @@ def deploy_fix():
             fixed = 0
             for p in no_img:
                 try:
-                    r = s.get(p.link, timeout=10)
+                    r = s.get(p.link, timeout=8)
                     if r.status_code == 200:
                         soup = BS(r.content, "html.parser")
-                        img = soup.select_one("img.-fw")
-                        if not img:
-                            img = soup.find("meta", property="og:image")
-                            if img:
-                                p.image_url = img.get("content", "")
-                                fixed += 1
-                            continue
-                        p.image_url = img.get("data-src") or img.get("src") or ""
-                        if p.image_url:
+                        og = soup.find("meta", property="og:image")
+                        if og and og.get("content"):
+                            p.image_url = og["content"]
                             fixed += 1
                 except:
                     continue
