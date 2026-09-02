@@ -721,14 +721,13 @@ if __name__ == '__main__':
 
 
 
-@ a p p . r o u t e ( ' / d e b u g _ p r o x y ' ,   m e t h o d s = [ ' G E T ' ] )  
- d e f   d e b u g _ p r o x y ( ) :  
-         i m p o r t   u r l l i b . r e q u e s t  
-         t r y :  
-                 u r l   =   r e q u e s t . a r g s . g e t ( ' u r l ' )  
-                 r e q   =   u r l l i b . r e q u e s t . R e q u e s t ( u r l ,   h e a d e r s = { ' U s e r - A g e n t ' :   ' M o z i l l a / 5 . 0   ( W i n d o w s   N T   1 0 . 0 ;   W i n 6 4 ;   x 6 4 ) ' } )  
-                 h t m l   =   u r l l i b . r e q u e s t . u r l o p e n ( r e q ,   t i m e o u t = 1 0 ) . r e a d ( ) . d e c o d e ( ' u t f - 8 ' )  
-                 r e t u r n   f ' u r l l i b   S u c c e s s :   { l e n ( h t m l ) } '  
-         e x c e p t   E x c e p t i o n   a s   e :  
-                 r e t u r n   f ' u r l l i b   E r r o r :   { e } '  
- 
+@app.route('/debug_proxy', methods=['GET'])
+def debug_proxy():
+    import urllib.request
+    try:
+        url = request.args.get('url')
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+        html = urllib.request.urlopen(req, timeout=10).read().decode('utf-8')
+        return f'urllib Success: {len(html)}'
+    except Exception as e:
+        return f'urllib Error: {e}'
