@@ -116,7 +116,7 @@ def restock_marketplace():
                         if not link_tag: continue
                         link = "https://www.jumia.com.ng" + link_tag.get("href")
                         if Product.query.filter_by(link=link).first(): continue
-                        name = card.find("h3", class_="name").get_text()
+                        name = card.find("h3", class_="name").get_text()[:490]
                         price = 0.0
                         price_tag = card.find("div", class_="prc")
                         if price_tag:

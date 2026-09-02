@@ -83,7 +83,7 @@ class User(UserMixin, db.Model):
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     link = db.Column(db.String(500), unique=True, nullable=False)
-    name = db.Column(db.String(200), nullable=False)
+    name = db.Column(db.String(500), nullable=False)
     current_price = db.Column(db.Float, nullable=False)
     old_price = db.Column(db.Float, nullable=True)
     image_url = db.Column(db.String(500), nullable=True)
@@ -642,6 +642,12 @@ def deploy_fix():
     # 1. Create Tables
     with app.app_context():
         db.create_all()
+        # Widen name column if it's still 200 chars
+        try:
+            db.session.execute(db.text("ALTER TABLE product ALTER COLUMN name TYPE VARCHAR(500)"))
+            db.session.commit()
+        except:
+            db.session.rollback()
     
     # 2. Scrape Jumia (Page 1 Only)
     try:
@@ -674,7 +680,7 @@ def deploy_fix():
                 
                 if link_tag and name_tag and price_tag:
                     link = "https://www.jumia.com.ng" + link_tag.get("href")
-                    name = name_tag.get_text().strip()
+                    name = name_tag.get_text().strip()[:490]
                     price_clean = price_tag.get_text().strip().replace("₦", "").replace(",", "").split("-")[0]
                     price = float(price_clean)
                     
