@@ -650,7 +650,7 @@ def deploy_fix():
         
         import requests
         session = requests.Session()
-        session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
+        session.headers.update({"User-Agent": "Googlebot/2.1 (+http://www.google.com/bot.html)"})
         CATEGORIES = [
             "https://www.jumia.com.ng/mobile-phones/?sort=newest",
             "https://www.jumia.com.ng/electronics/?sort=newest",
