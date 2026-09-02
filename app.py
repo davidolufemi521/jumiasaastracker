@@ -132,10 +132,33 @@ def scrape_jumia_product(url):
         
     clean_url = url.split("?")[0].split("#")[0]
 
-    from curl_cffi import requests as cffi_requests
-    session = cffi_requests.Session(impersonate="chrome")
+    import requests
+    import random
+    import time
+    
+    UAS = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 16_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36'
+    ]
+    
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': random.choice(UAS),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Referer': 'https://www.google.com/'
+    })
+    
     try:
-        response = session.get(clean_url, timeout=15)
+        response = None
+        for attempt in range(3):
+            response = session.get(clean_url, timeout=15)
+            if response.status_code == 200:
+                break
+            time.sleep(2)
+            
         if response.status_code != 200: 
             return {'error': f'Status code {response.status_code}'}
         
@@ -623,8 +646,9 @@ def deploy_fix():
         import requests
         from bs4 import BeautifulSoup
         
-        from curl_cffi import requests as cffi_requests
-        session = cffi_requests.Session(impersonate="chrome")
+        import requests
+        session = requests.Session()
+        session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
         CATEGORIES = [
             "https://www.jumia.com.ng/mobile-phones/?sort=newest",
             "https://www.jumia.com.ng/electronics/?sort=newest",

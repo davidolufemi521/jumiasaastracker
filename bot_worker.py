@@ -99,8 +99,9 @@ def restock_marketplace():
     ]
     JUMIA_CATEGORY = random.choice(CATEGORIES)
     print(f"\n🚚 RUNNING MARKET RESTOCK FROM: {JUMIA_CATEGORY}")
-    from curl_cffi import requests as cffi_requests
-    session = cffi_requests.Session(impersonate="chrome")
+    import requests
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
     
     with app.app_context():
         try:
@@ -157,8 +158,9 @@ def start_bot():
             products = Product.query.all()
             print(f"📊 Tracking {len(products)} products.")
             
-            from curl_cffi import requests as cffi_requests
-            session = cffi_requests.Session(impersonate="chrome")
+            import requests
+            session = requests.Session()
+            session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
 
             for p in products:
                 print(f"   👉 {p.name[:20]}... ", end='', flush=True)
