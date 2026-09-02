@@ -99,11 +99,8 @@ def restock_marketplace():
     ]
     JUMIA_CATEGORY = random.choice(CATEGORIES)
     print(f"\n🚚 RUNNING MARKET RESTOCK FROM: {JUMIA_CATEGORY}")
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": "https://www.google.com/"
-    })
+    import cloudscraper
+    session = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
     
     with app.app_context():
         try:
@@ -160,8 +157,8 @@ def start_bot():
             products = Product.query.all()
             print(f"📊 Tracking {len(products)} products.")
             
-            session = requests.Session()
-            session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
+            import cloudscraper
+            session = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
 
             for p in products:
                 print(f"   👉 {p.name[:20]}... ", end='', flush=True)

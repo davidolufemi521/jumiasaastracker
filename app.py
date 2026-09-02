@@ -132,15 +132,11 @@ def scrape_jumia_product(url):
         
     clean_url = url.split("?")[0].split("#")[0]
 
-    session = requests.Session()
-    session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Referer": "https://www.google.com/"
-    })
-
+    import cloudscraper
+    session = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+    # Remove manual headers since cloudscraper handles them
     try:
-        response = session.get(clean_url, timeout=10)
+        response = session.get(clean_url, timeout=15)
         if response.status_code != 200: return None
         
         soup = BeautifulSoup(response.content, "html.parser")
@@ -624,8 +620,8 @@ def deploy_fix():
         import requests
         from bs4 import BeautifulSoup
         
-        session = requests.Session()
-        session.headers.update({"User-Agent": "Mozilla/5.0"})
+        import cloudscraper
+        session = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
         CATEGORIES = [
             "https://www.jumia.com.ng/mobile-phones/?sort=newest",
             "https://www.jumia.com.ng/electronics/?sort=newest",
