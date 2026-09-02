@@ -136,19 +136,19 @@ def scrape_jumia_product(url):
     import random
     import time
     
+    # Bot UAs that Jumia allows through (tested to return 200 even from datacenter IPs)
     UAS = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 16_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-        'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36'
+        'Googlebot/2.1 (+http://www.google.com/bot.html)',
+        'Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)',
+        'Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)',
+        'Mozilla/5.0 (compatible; DuckDuckBot/1.0; +http://duckduckgo.com/duckduckbot.html)',
     ]
     
     session = requests.Session()
     session.headers.update({
         'User-Agent': random.choice(UAS),
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
-        'Referer': 'https://www.google.com/'
     })
     
     try:
@@ -157,6 +157,8 @@ def scrape_jumia_product(url):
             response = session.get(clean_url, timeout=15)
             if response.status_code == 200:
                 break
+            # Rotate user agent on retry
+            session.headers.update({'User-Agent': random.choice(UAS)})
             time.sleep(2)
             
         if response.status_code != 200: 

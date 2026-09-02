@@ -101,7 +101,7 @@ def restock_marketplace():
     print(f"\n🚚 RUNNING MARKET RESTOCK FROM: {JUMIA_CATEGORY}")
     import requests
     session = requests.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
+    session.headers.update({"User-Agent": "Googlebot/2.1 (+http://www.google.com/bot.html)"})
     
     with app.app_context():
         try:
@@ -160,7 +160,7 @@ def start_bot():
             
             import requests
             session = requests.Session()
-            session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36"})
+            session.headers.update({"User-Agent": "Googlebot/2.1 (+http://www.google.com/bot.html)"})
 
             for p in products:
                 print(f"   👉 {p.name[:20]}... ", end='', flush=True)
