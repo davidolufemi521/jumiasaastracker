@@ -136,7 +136,8 @@ def scrape_jumia_product(url):
     session = cffi_requests.Session(impersonate="chrome")
     try:
         response = session.get(clean_url, timeout=15)
-        if response.status_code != 200: return None
+        if response.status_code != 200: 
+            return {'error': f'Status code {response.status_code}'}
         
         soup = BeautifulSoup(response.content, "html.parser")
         
@@ -168,7 +169,7 @@ def scrape_jumia_product(url):
                 try: price = float(meta_price["content"])
                 except: pass
 
-        if price == 0.0: return None 
+        if price == 0.0: return {'error': 'Price not found on page. Might be blocked.'}
 
         # 4. STOCK STATUS
         stock_text = None
@@ -198,7 +199,7 @@ def scrape_jumia_product(url):
         
     except Exception as e:
         print(f"Scrape Error: {e}")
-        return None
+        return {'error': str(e)}
 
 # --- ROUTES ---
 
@@ -276,7 +277,10 @@ def add_link():
             else:
                 data = scrape_jumia_product(link)
                 if data: 
-                    preview_data = {**data, 'link': link, 'exists': False}
+                    if 'error' in data:
+                        flash(f'Error fetching: {data["error"]}', 'danger')
+                    else:
+                        preview_data = {**data, 'link': link, 'exists': False}
                 else: flash('Could not fetch product.', 'danger')
         elif 'confirm_track' in request.form:
             raw_link = request.form.get('confirm_link').strip()
