@@ -266,7 +266,7 @@ def add_link():
     preview_data = None
     if request.method == 'POST':
         if 'link' in request.form:
-            raw_link = request.form.get('link')
+            raw_link = request.form.get('link').strip()
             link = raw_link.split("?")[0].split("#")[0] if "jumia" in raw_link else raw_link
             existing = Product.query.filter_by(link=link).first()
             if existing: 
@@ -284,7 +284,7 @@ def add_link():
                     preview_data = {**data, 'link': link, 'exists': False}
                 else: flash('Could not fetch product.', 'danger')
         elif 'confirm_track' in request.form:
-            raw_link = request.form.get('confirm_link')
+            raw_link = request.form.get('confirm_link').strip()
             link = raw_link.split("?")[0].split("#")[0] if "jumia" in raw_link else raw_link
             prod = Product.query.filter_by(link=link).first()
             if not prod:
