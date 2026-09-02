@@ -90,7 +90,7 @@ def find_stock_status(soup):
 def restock_marketplace():
     from app import app, db, Product, PriceHistory
     print("\n🚚 RUNNING MARKET RESTOCK...")
-    JUMIA_CATEGORY = "https://www.jumia.com.ng/mobile-phones/"
+    JUMIA_CATEGORY = "https://www.jumia.com.ng/mobile-phones/?sort=newest"
     session = requests.Session()
     session.headers.update({
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36",
@@ -145,8 +145,6 @@ def start_bot():
             print("📭 Database is empty! Running INITIAL RESTOCK now...")
             restock_marketplace()
 
-    hour_counter = 0
-    
     while True:
         print("\n🔎 STARTING PRICE SCAN (SURGICAL MODE)...")
         
@@ -163,7 +161,7 @@ def start_bot():
                     time.sleep(random.uniform(MIN_WAIT, MAX_WAIT))
                     response = session.get(p.link, timeout=20, allow_redirects=True)
                     final_url = response.url
-                    if "oos=1" in final_url or "out-of-stock" in final_url or not final_url.split("?")[0].endswith(".html"):
+                    if "oos=1" in final_url or "out-of-stock" in final_url:
                         print(f"💀 DEAD LINK. Removing.")
                         for tracker in p.trackers:
                             send_product_removed_email(tracker.user.email, p.name, p.link)
@@ -217,10 +215,8 @@ def start_bot():
                     print(f"❌ {e}")
                     continue
 
-        hour_counter += 1
-        if hour_counter >= HOURS_UNTIL_RESTOCK:
-            restock_marketplace()
-            hour_counter = 0
+        # Run restock every cycle (every 16 hours)
+        restock_marketplace()
 
-        print("💤 Bot sleeping for 1 hour...")
-        time.sleep(3600)
+        print("💤 Bot sleeping for 16 hours...")
+        time.sleep(16 * 3600)

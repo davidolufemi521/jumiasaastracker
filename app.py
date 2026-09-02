@@ -117,7 +117,8 @@ def load_user(user_id):
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if current_user.email != "davidolufemi773@gmail.com": 
+        admin_email = os.environ.get("ADMIN_EMAIL", "davidolufemi773@gmail.com")
+        if current_user.email != admin_email: 
             flash("❌ You are not the Admin!", "danger")
             return redirect(url_for('home'))
         return f(*args, **kwargs)
@@ -125,14 +126,11 @@ def admin_required(f):
 
 # --- SCRAPER FUNCTION (UPDATED FOR PRICE RANGES) ---
 def scrape_jumia_product(url):
-    if "jumia.com.ng" not in url:
+    if "jumia.com.ng" not in url and "jumia.ng" not in url:
         print("❌ Rejected: Not a Jumia link")
         return None
         
-    clean_url = url.split("?")[0]
-    if not clean_url.endswith(".html"):
-        print("❌ Rejected: Category link")
-        return None
+    clean_url = url.split("?")[0].split("#")[0]
 
     session = requests.Session()
     session.headers.update({
@@ -142,7 +140,7 @@ def scrape_jumia_product(url):
     })
 
     try:
-        response = session.get(url, timeout=10)
+        response = session.get(clean_url, timeout=10)
         if response.status_code != 200: return None
         
         soup = BeautifulSoup(response.content, "html.parser")
@@ -268,7 +266,8 @@ def add_link():
     preview_data = None
     if request.method == 'POST':
         if 'link' in request.form:
-            link = request.form.get('link')
+            raw_link = request.form.get('link')
+            link = raw_link.split("?")[0].split("#")[0] if "jumia" in raw_link else raw_link
             existing = Product.query.filter_by(link=link).first()
             if existing: 
                 preview_data = { 
@@ -285,16 +284,23 @@ def add_link():
                     preview_data = {**data, 'link': link, 'exists': False}
                 else: flash('Could not fetch product.', 'danger')
         elif 'confirm_track' in request.form:
-            link = request.form.get('confirm_link')
+            raw_link = request.form.get('confirm_link')
+            link = raw_link.split("?")[0].split("#")[0] if "jumia" in raw_link else raw_link
             prod = Product.query.filter_by(link=link).first()
             if not prod:
+                # Security Fix: Re-scrape instead of trusting frontend form data
+                data = scrape_jumia_product(link)
+                if not data:
+                    flash('Error validating product data. Please try again.', 'danger')
+                    return redirect(url_for('add_link'))
+                    
                 prod = Product(
                     link=link, 
-                    name=request.form.get('confirm_name'), 
-                    current_price=float(request.form.get('confirm_price')), 
-                    old_price=float(request.form.get('confirm_price')), 
-                    image_url=request.form.get('confirm_image'),
-                    stock_left=request.form.get('confirm_stock'),
+                    name=data['name'], 
+                    current_price=float(data['price']), 
+                    old_price=float(data['price']), 
+                    image_url=data['image'],
+                    stock_left=data['stock'],
                     is_public=False
                 )
                 db.session.add(prod)
@@ -370,6 +376,10 @@ def login():
         
         user = User.query.filter_by(email=email).first()
         if user:
+            if user.login_attempts >= 4:
+                flash('Account locked due to too many failed attempts. Please reset your password.', 'danger')
+                return redirect(url_for('forgot_password'))
+                
             if check_password_hash(user.password, password):
                 # Reset login attempts on success
                 user.login_attempts = 0
@@ -559,6 +569,10 @@ def reset_password():
         confirm_pass = request.form.get('confirm_password')
         email = session.get('email_reset')
         
+        if not email:
+            flash('Session expired or invalid. Please try again.', 'danger')
+            return redirect(url_for('forgot_password'))
+        
         if new_pass != confirm_pass:
             flash('Passwords do not match!', 'danger')
             return redirect(url_for('reset_password'))
@@ -612,7 +626,7 @@ def deploy_fix():
         
         session = requests.Session()
         session.headers.update({"User-Agent": "Mozilla/5.0"})
-        url = "https://www.jumia.com.ng/mobile-phones/"
+        url = "https://www.jumia.com.ng/mobile-phones/?sort=newest"
         
         response = session.get(url)
         soup = BeautifulSoup(response.content, "html.parser")
