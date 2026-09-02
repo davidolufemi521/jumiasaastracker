@@ -132,9 +132,8 @@ def scrape_jumia_product(url):
         
     clean_url = url.split("?")[0].split("#")[0]
 
-    import cloudscraper
-    session = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
-    # Remove manual headers since cloudscraper handles them
+    from curl_cffi import requests as cffi_requests
+    session = cffi_requests.Session(impersonate="chrome")
     try:
         response = session.get(clean_url, timeout=15)
         if response.status_code != 200: return None
@@ -620,8 +619,8 @@ def deploy_fix():
         import requests
         from bs4 import BeautifulSoup
         
-        import cloudscraper
-        session = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'mobile': False})
+        from curl_cffi import requests as cffi_requests
+        session = cffi_requests.Session(impersonate="chrome")
         CATEGORIES = [
             "https://www.jumia.com.ng/mobile-phones/?sort=newest",
             "https://www.jumia.com.ng/electronics/?sort=newest",
