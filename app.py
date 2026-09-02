@@ -649,6 +649,35 @@ def deploy_fix():
         except:
             db.session.rollback()
     
+    # 1.5 Backfill missing images on existing products
+    with app.app_context():
+        import requests as req
+        from bs4 import BeautifulSoup as BS
+        no_img = Product.query.filter((Product.image_url == None) | (Product.image_url == '')).all()
+        if no_img:
+            s = req.Session()
+            s.headers.update({"User-Agent": "Googlebot/2.1 (+http://www.google.com/bot.html)"})
+            fixed = 0
+            for p in no_img:
+                try:
+                    r = s.get(p.link, timeout=10)
+                    if r.status_code == 200:
+                        soup = BS(r.content, "html.parser")
+                        img = soup.select_one("img.-fw")
+                        if not img:
+                            img = soup.find("meta", property="og:image")
+                            if img:
+                                p.image_url = img.get("content", "")
+                                fixed += 1
+                            continue
+                        p.image_url = img.get("data-src") or img.get("src") or ""
+                        if p.image_url:
+                            fixed += 1
+                except:
+                    continue
+            db.session.commit()
+            print(f"Backfilled images for {fixed}/{len(no_img)} products")
+
     # 2. Scrape Jumia (Page 1 Only)
     try:
         import requests
