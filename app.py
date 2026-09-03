@@ -649,28 +649,19 @@ def deploy_fix():
         except:
             db.session.rollback()
     
-    # 1.5 Backfill missing images on existing products
+    # 1.5 Remove marketplace products with no images (restock will replace them)
     with app.app_context():
-        import requests as req
-        from bs4 import BeautifulSoup as BS
-        no_img = Product.query.filter((Product.image_url == None) | (Product.image_url == '')).all()
-        if no_img:
-            s = req.Session()
-            s.headers.update({"User-Agent": "Googlebot/2.1 (+http://www.google.com/bot.html)"})
-            fixed = 0
+        try:
+            no_img = Product.query.filter(
+                Product.is_public == True,
+                ((Product.image_url == None) | (Product.image_url == ''))
+            ).all()
             for p in no_img:
-                try:
-                    r = s.get(p.link, timeout=8)
-                    if r.status_code == 200:
-                        soup = BS(r.content, "html.parser")
-                        og = soup.find("meta", property="og:image")
-                        if og and og.get("content"):
-                            p.image_url = og["content"]
-                            fixed += 1
-                except:
-                    continue
+                db.session.delete(p)
             db.session.commit()
-            print(f"Backfilled images for {fixed}/{len(no_img)} products")
+            print(f"Removed {len(no_img)} products with no images")
+        except:
+            db.session.rollback()
 
     # 2. Scrape Jumia (Page 1 Only)
     try:
