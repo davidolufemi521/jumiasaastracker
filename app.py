@@ -373,7 +373,8 @@ def contact():
 @admin_required
 def admin_dashboard():
     total_users = User.query.count()
-    total_products = Product.query.count()
+    marketplace_products = Product.query.filter_by(is_public=True).count()
+    tracked_products = Product.query.filter_by(is_public=False).count()
     all_feedbacks = Feedback.query.order_by(Feedback.date_sent.desc()).all()
     all_users = User.query.all()
     
@@ -381,7 +382,8 @@ def admin_dashboard():
                            users=all_users, 
                            feedbacks=all_feedbacks, 
                            user_count=total_users, 
-                           product_count=total_products)
+                           product_count=marketplace_products,
+                           tracked_count=tracked_products)
 
 @app.route('/delete_feedback/<int:id>')
 @login_required
