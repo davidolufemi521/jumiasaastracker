@@ -268,7 +268,11 @@ def marketplace():
             flash('Added to Watchlist!', 'success')
         else: flash('Already tracking.', 'warning')
         return redirect(url_for('marketplace'))
-    return render_template('marketplace.html', all_products=Product.query.filter_by(is_public=True).all())
+    return render_template('marketplace.html', all_products=Product.query.filter(
+        Product.is_public == True,
+        Product.image_url != None,
+        Product.image_url != ''
+    ).order_by(Product.id.desc()).all())
 
 @app.route('/track_item/<int:product_id>', methods=['POST'])
 @login_required
