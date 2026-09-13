@@ -241,15 +241,31 @@ def about():
 @app.route('/dashboard')
 @login_required
 def home():
+    # Price-dropped marketplace deals (best savings first)
     market_deals = Product.query.filter(
-        Product.is_public == True, 
-        Product.current_price < Product.old_price
+        Product.is_public == True,
+        Product.current_price < Product.old_price,
+        Product.image_url != None,
+        Product.image_url != ''
     ).order_by(
         desc(Product.old_price - Product.current_price)
     ).limit(6).all()
-    
-    my_alerts = [t.product for t in Tracking.query.filter_by(user_id=current_user.id).all() if t.product.current_price < t.product.old_price]
-    
+
+    # If fewer than 6 price drops, top up with newest marketplace products
+    if len(market_deals) < 6:
+        shown_ids = [p.id for p in market_deals]
+        extra = Product.query.filter(
+            Product.is_public == True,
+            Product.image_url != None,
+            Product.image_url != '',
+            ~Product.id.in_(shown_ids) if shown_ids else True
+        ).order_by(desc(Product.id)).limit(6 - len(market_deals)).all()
+        market_deals = market_deals + extra
+
+    # User's personal watchlist price drops
+    my_alerts = [t.product for t in Tracking.query.filter_by(user_id=current_user.id).all()
+                 if t.product and t.product.current_price < t.product.old_price]
+
     return render_template('home.html', name=current_user.name, market_deals=market_deals, my_alerts=my_alerts)
 
 @app.route('/watchlist')

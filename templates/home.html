@@ -299,14 +299,21 @@
             <h3 class="section-title" style="border-color: #f68b1e;">🔥 Hot Market Deals</h3>
             {% for item in market_deals %}
             <div class="deal-card" style="border-left-color: #f68b1e;">
-                <img src="{{ item.image_url }}" class="deal-img">
+                {% if item.current_price < item.old_price %}
+                    {% set discount = ((item.old_price - item.current_price) / item.old_price) * 100 %}
+                    {% if discount > 5 %}
+                        <div class="flash-badge">🔥 -{{ "%.0f"|format(discount) }}% OFF</div>
+                    {% endif %}
+                {% endif %}
+                <img src="{{ item.image_url }}" class="deal-img" onerror="this.src='https://dummyimage.com/70x70/f0f0f0/999&text=?'">
                 <div class="deal-info">
-                    <div class="deal-name">{{ item.name }}</div>
+                    <div class="deal-name">{{ item.name[:60] }}{% if item.name|length > 60 %}...{% endif %}</div>
                     <div>
                         <span class="deal-price" style="color: #f68b1e;">₦{{ "{:,.0f}".format(item.current_price) }}</span>
-                        <span class="deal-old">₦{{ "{:,.0f}".format(item.old_price) }}</span>
+                        {% if item.current_price < item.old_price %}
+                            <span class="deal-old">₦{{ "{:,.0f}".format(item.old_price) }}</span>
+                        {% endif %}
                     </div>
-                    
                     {% if item.stock_left %}
                         <div class="stock-warning"><i class="fas fa-exclamation-circle"></i> {{ item.stock_left }}</div>
                     {% endif %}
