@@ -374,7 +374,7 @@ def contact():
 def admin_dashboard():
     total_users = User.query.count()
     marketplace_products = Product.query.filter_by(is_public=True).count()
-    tracked_products = Product.query.filter_by(is_public=False).count()
+    watchlist_entries = Tracking.query.count()          # real user watchlist rows
     all_feedbacks = Feedback.query.order_by(Feedback.date_sent.desc()).all()
     all_users = User.query.all()
     
@@ -383,7 +383,7 @@ def admin_dashboard():
                            feedbacks=all_feedbacks, 
                            user_count=total_users, 
                            product_count=marketplace_products,
-                           tracked_count=tracked_products)
+                           tracked_count=watchlist_entries)
 
 @app.route('/delete_feedback/<int:id>')
 @login_required
@@ -655,17 +655,28 @@ def deploy_fix():
         except:
             db.session.rollback()
     
-    # 1.5 Remove marketplace products with no images (restock will replace them)
+    # 1.5 Remove marketplace products with no images + ghost dead products
     with app.app_context():
         try:
+            # Delete marketplace items with no image
             no_img = Product.query.filter(
                 Product.is_public == True,
                 ((Product.image_url == None) | (Product.image_url == ''))
             ).all()
             for p in no_img:
                 db.session.delete(p)
+
+            # Delete ghost products (old dead marketplace items set is_public=False by bot)
+            # These are NOT user private items — user items have trackers attached
+            ghost = Product.query.filter(
+                Product.is_public == False
+            ).all()
+            real_ghosts = [p for p in ghost if not p.trackers]  # no user watchlist = ghost
+            for p in real_ghosts:
+                db.session.delete(p)
+
             db.session.commit()
-            print(f"Removed {len(no_img)} products with no images")
+            print(f"Cleaned: {len(no_img)} no-image + {len(real_ghosts)} ghost products")
         except:
             db.session.rollback()
 

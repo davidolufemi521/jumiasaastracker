@@ -90,18 +90,29 @@ def find_stock_status(soup):
 def restock_marketplace():
     from app import app, db, Product, PriceHistory
     MARKETPLACE_CAP = 1000   # Hard limit — never exceed this
-    REFRESH_TARGET  = 600    # How many products to keep after a refresh
+    REFRESH_TARGET  = 600    # Fill up to this many products
 
-    CATEGORIES = [
-        "https://www.jumia.com.ng/mobile-phones/?sort=newest",
-        "https://www.jumia.com.ng/electronics/?sort=newest",
-        "https://www.jumia.com.ng/computing/?sort=newest",
-        "https://www.jumia.com.ng/category-fashion-by-jumia/?sort=newest",
-        "https://www.jumia.com.ng/home-office/?sort=newest",
-        "https://www.jumia.com.ng/health-beauty/?sort=newest",
-        "https://www.jumia.com.ng/sporting-goods/?sort=newest",
-        "https://www.jumia.com.ng/groceries/?sort=newest",
+    # All categories — each scraped from page 1 AND page 2 for real variety
+    BASE_CATEGORIES = [
+        "https://www.jumia.com.ng/mobile-phones/",
+        "https://www.jumia.com.ng/electronics/",
+        "https://www.jumia.com.ng/computing/",
+        "https://www.jumia.com.ng/category-fashion-by-jumia/",
+        "https://www.jumia.com.ng/home-office/",
+        "https://www.jumia.com.ng/health-beauty/",
+        "https://www.jumia.com.ng/sporting-goods/",
+        "https://www.jumia.com.ng/groceries/",
+        "https://www.jumia.com.ng/baby-products/",
+        "https://www.jumia.com.ng/garden-outdoors/",
+        "https://www.jumia.com.ng/automotive/",
+        "https://www.jumia.com.ng/books-movies-music/",
     ]
+    # Build URLs for page 1 and page 2 of each category, shuffle for variety
+    PAGES = []
+    for base in BASE_CATEGORIES:
+        PAGES.append(base + "?sort=newest")
+        PAGES.append(base + "?page=2&sort=newest")
+    random.shuffle(PAGES)
 
     import requests
     session = requests.Session()
@@ -129,11 +140,11 @@ def restock_marketplace():
                 print("✅ Marketplace is full enough. No restock needed.")
                 return
 
-            # Scrape multiple categories to fill available slots
-            random.shuffle(CATEGORIES)
+            # Scrape all pages until slots are filled
+            random.shuffle(PAGES)
             added_count = 0
 
-            for category_url in CATEGORIES:
+            for category_url in PAGES:
                 if added_count >= slots_available:
                     break
                 print(f"   📦 Fetching from: {category_url.split('.ng/')[1].split('/?')[0]}")
@@ -229,7 +240,12 @@ def start_bot():
                         for tracker in p.trackers:
                             send_product_removed_email(tracker.user.email, p.name, p.link)
                             db.session.delete(tracker)
-                        p.is_public = False
+                        if p.is_public:
+                            # Marketplace product — just delete it entirely
+                            db.session.delete(p)
+                        else:
+                            # User's private item — keep but mark hidden
+                            p.stock_left = "Out of Stock"
                         db.session.commit()
                         continue
 
