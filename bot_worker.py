@@ -86,58 +86,114 @@ def find_stock_status(soup):
         if text_span: return text_span.get_text().strip()
     return None
 
-# --- RESTOCK FUNCTION ---
+# --- RESTOCK FUNCTION (with 1000 cap + daily refresh) ---
 def restock_marketplace():
     from app import app, db, Product, PriceHistory
+    MARKETPLACE_CAP = 1000   # Hard limit — never exceed this
+    REFRESH_TARGET  = 600    # How many products to keep after a refresh
+
     CATEGORIES = [
         "https://www.jumia.com.ng/mobile-phones/?sort=newest",
         "https://www.jumia.com.ng/electronics/?sort=newest",
         "https://www.jumia.com.ng/computing/?sort=newest",
         "https://www.jumia.com.ng/category-fashion-by-jumia/?sort=newest",
         "https://www.jumia.com.ng/home-office/?sort=newest",
-        "https://www.jumia.com.ng/health-beauty/?sort=newest"
+        "https://www.jumia.com.ng/health-beauty/?sort=newest",
+        "https://www.jumia.com.ng/sporting-goods/?sort=newest",
+        "https://www.jumia.com.ng/groceries/?sort=newest",
     ]
-    JUMIA_CATEGORY = random.choice(CATEGORIES)
-    print(f"\n🚚 RUNNING MARKET RESTOCK FROM: {JUMIA_CATEGORY}")
+
     import requests
     session = requests.Session()
     session.headers.update({"User-Agent": "Googlebot/2.1 (+http://www.google.com/bot.html)"})
-    
+
     with app.app_context():
         try:
-            response = session.get(JUMIA_CATEGORY)
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.content, "html.parser")
-                cards = soup.find_all("article", class_="prd _fb col c-prd")
-                added_count = 0
-                for card in cards:
-                    try:
-                        link_tag = card.find("a", class_="core")
-                        if not link_tag: continue
-                        link = "https://www.jumia.com.ng" + link_tag.get("href")
-                        if Product.query.filter_by(link=link).first(): continue
-                        name = card.find("h3", class_="name").get_text()[:490]
-                        price = 0.0
-                        price_tag = card.find("div", class_="prc")
-                        if price_tag:
-                            clean = price_tag.get_text().strip().replace("₦", "").replace(",", "")
-                            if "-" in clean: clean = clean.split("-")[0]
+            current_count = Product.query.filter_by(is_public=True).count()
+            print(f"\n🚚 MARKETPLACE RESTOCK | Current: {current_count} products")
+
+            # --- DAILY REFRESH: if at/near cap, wipe and start fresh ---
+            if current_count >= MARKETPLACE_CAP:
+                print(f"♻️  Cap reached ({MARKETPLACE_CAP}). Wiping old marketplace items for daily refresh...")
+                # Only delete public marketplace items (NOT user private tracked items)
+                old_products = Product.query.filter_by(is_public=True).all()
+                for p in old_products:
+                    db.session.delete(p)
+                db.session.commit()
+                print(f"🗑️  Cleared {len(old_products)} old marketplace products.")
+                current_count = 0
+
+            # --- FILL UP to REFRESH_TARGET ---
+            slots_available = REFRESH_TARGET - current_count
+            if slots_available <= 0:
+                print("✅ Marketplace is full enough. No restock needed.")
+                return
+
+            # Scrape multiple categories to fill available slots
+            random.shuffle(CATEGORIES)
+            added_count = 0
+
+            for category_url in CATEGORIES:
+                if added_count >= slots_available:
+                    break
+                print(f"   📦 Fetching from: {category_url.split('.ng/')[1].split('/?')[0]}")
+                try:
+                    response = session.get(category_url, timeout=15)
+                    if response.status_code != 200:
+                        print(f"   ⚠️ Got {response.status_code}, skipping.")
+                        continue
+
+                    soup = BeautifulSoup(response.content, "html.parser")
+                    cards = soup.find_all("article", class_="prd _fb col c-prd")
+                    if not cards:
+                        # fallback selector
+                        cards = soup.find_all("article", class_="prd")
+
+                    for card in cards:
+                        if added_count >= slots_available:
+                            break
+                        try:
+                            link_tag = card.find("a", class_="core")
+                            if not link_tag: continue
+                            link = "https://www.jumia.com.ng" + link_tag.get("href")
+                            if Product.query.filter_by(link=link).first(): continue
+
+                            name_tag = card.find("h3", class_="name")
+                            price_tag = card.find("div", class_="prc")
+                            img_tag  = card.find("img", class_="img")
+                            if not (name_tag and price_tag): continue
+
+                            name  = name_tag.get_text().strip()[:490]
+                            clean = price_tag.get_text().strip().replace("₦", "").replace(",", "").split("-")[0]
                             price = float(clean)
-                        img_tag = card.find("img", class_="img")
-                        image_url = img_tag.get("data-src") if img_tag else ""
-                        if price > 0:
-                            new_prod = Product(link=link, name=name, current_price=price, old_price=price, image_url=image_url, stock_left="In stock", is_public=True)
-                            db.session.add(new_prod)
-                            db.session.commit()
-                            db.session.add(PriceHistory(product_id=new_prod.id, price=price))
-                            db.session.commit()
-                            added_count += 1
-                    except: continue
-                print(f"🎉 RESTOCK COMPLETE: Added {added_count} new items.")
-            else:
-                print("❌ Restock failed: Jumia blocked connection.")
+                            image_url = img_tag.get("data-src") if img_tag else ""
+
+                            if price > 0 and image_url:   # only add if we have both price AND image
+                                new_prod = Product(
+                                    link=link, name=name,
+                                    current_price=price, old_price=price,
+                                    image_url=image_url, stock_left="In stock",
+                                    is_public=True
+                                )
+                                db.session.add(new_prod)
+                                db.session.flush()
+                                db.session.add(PriceHistory(product_id=new_prod.id, price=price))
+                                added_count += 1
+                        except: continue
+
+                    db.session.commit()
+                except Exception as e:
+                    print(f"   ❌ Category error: {e}")
+                    db.session.rollback()
+                    continue
+
+            final_count = Product.query.filter_by(is_public=True).count()
+            print(f"🎉 RESTOCK DONE: Added {added_count} | Total now: {final_count}/{MARKETPLACE_CAP}")
+
         except Exception as e:
+            db.session.rollback()
             print(f"❌ Restock Error: {e}")
+
 
 # --- MAIN LOOP ---
 def start_bot():
